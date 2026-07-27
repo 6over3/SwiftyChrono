@@ -3,6 +3,7 @@
 * Swift 5.10+
 * Fully supports Swift Package Manager
 * Catalan support (#16, Thanks @hectr)
+* Russian support (#18, Thanks @CoolONEOfficial)
 * Re-ported the Chinese locale from current chrono.js v2, splitting the ZH parsers into
   Simplified (`ZHHans*`) and Traditional (`ZHHant*`) parser sets
   * New relative-day keywords: 前天 (−2), 大前天 (−3), 后天/後天 (+2), 大后天/大後天 (+3), and 现在
