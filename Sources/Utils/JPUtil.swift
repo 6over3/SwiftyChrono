@@ -7,13 +7,28 @@
 //
 
 import Foundation
+#if os(Linux)
+    import CoreFoundation
+    import Glibc
+#endif
 
 // source: https://gist.github.com/sgr-ksmt/2dcf11a64cdb22d44517
 extension String {
     private func convertFullWidthToHalfWidth(reverse: Bool) -> String {
-        let str = NSMutableString(string: self) as CFMutableString
-        CFStringTransform(str, nil, kCFStringTransformFullwidthHalfwidth, reverse)
-        return str as String
+        #if canImport(Darwin)
+            let str = NSMutableString(string: self) as CFMutableString
+            CFStringTransform(str, nil, kCFStringTransformFullwidthHalfwidth, reverse)
+            return str as String
+        #else
+            // NSMutableString -> CFMutableString relies on toll-free bridging, which
+            // swift-corelibs-foundation doesn't provide. Build the CFMutableString
+            // directly instead.
+            let chars = Array(self.utf16)
+            let cfStr = CFStringCreateWithCharacters(nil, chars, self.utf16.count)
+            let str = CFStringCreateMutableCopy(nil, 0, cfStr)!
+            CFStringTransform(str, nil, kCFStringTransformFullwidthHalfwidth, reverse)
+            return String(describing: str)
+        #endif
     }
     
     var hankaku: String {
