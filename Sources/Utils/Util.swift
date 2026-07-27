@@ -43,6 +43,9 @@ extension String {
     }
     
     func subString(with range: NSRange) -> String {
+        guard range.location != NSNotFound else {
+            return .init()
+        }
         return (self as NSString).substring(with: range)
     }
     
