@@ -57,11 +57,22 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         DETimeExpressionParser(strictMode: strictMode),
         
         // ZH-Hant
-        ZHCasualDateParser(strictMode: strictMode),
-        ZHDateParser(strictMode: strictMode),
-        ZHDeadlineFormatParser(strictMode: strictMode),
-        ZHTimeExpressionParser(strictMode: strictMode),
-        ZHWeekdayParser(strictMode: strictMode),
+        ZHHantCasualDateParser(strictMode: strictMode),
+        ZHHantDateParser(strictMode: strictMode),
+        ZHHantRelationWeekdayParser(strictMode: strictMode),
+        ZHHantWeekdayParser(strictMode: strictMode),
+        ZHHantTimeExpressionParser(strictMode: strictMode),
+        ZHHantDeadlineFormatParser(strictMode: strictMode),
+        ZHHantAgoFormatParser(strictMode: strictMode),
+
+        // ZH-Hans
+        ZHHansCasualDateParser(strictMode: strictMode),
+        ZHHansDateParser(strictMode: strictMode),
+        ZHHansRelationWeekdayParser(strictMode: strictMode),
+        ZHHansWeekdayParser(strictMode: strictMode),
+        ZHHansTimeExpressionParser(strictMode: strictMode),
+        ZHHansDeadlineFormatParser(strictMode: strictMode),
+        ZHHansAgoFormatParser(strictMode: strictMode),
 
         // CA
         CATimeAgoFormatParser(strictMode: strictMode),
@@ -149,5 +160,5 @@ public func casualModeOption() -> ModeOptio {
 }
 
 public enum Language {
-    case english, spanish, catalan, french, japanese, german, chinese, russian
+    case english, spanish, catalan, french, japanese, german, chinese, russian, chineseSimplified
 }

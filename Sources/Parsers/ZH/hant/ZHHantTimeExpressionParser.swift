@@ -1,43 +1,44 @@
 //
-//  ZHTimeExpressionParser.swift
+//  ZHHantTimeExpressionParser.swift
 //  SwiftyChrono
 //
 //  Created by Jerry Chen on 2/18/17.
 //  Copyright © 2017 Potix. All rights reserved.
 //
+//  Ported from chrono.js src/locales/zh/hant/parsers/ZHHantTimeExpressionParser.ts
 
 import Foundation
 
 private let FIRST_REG_PATTERN = "(?:由|從|自)?" +
     "(?:" +
-    "(今|明|聽|昨|尋|琴)(早|朝|晚)|" +
+    "(今|明|前|大前|後|大後|聽|昨|尋|琴)(早|朝|晚)|" +
     "(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨))|" +
-    "(今|明|聽|昨|尋|琴)(?:日|天)" +
+    "(今|明|前|大前|後|大後|聽|昨|尋|琴)(?:日|天)" +
     "(?:[\\s,，]*)" +
     "(?:(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨)))?" +
     ")?" +
     "(?:[\\s,，]*)" +
-    "(?:(\\d+|\(ZH_NUMBER_PATTERN)+)(?:\\s*)(?:點|時|:|：|点|时)" +
+    "(?:(\\d+|\(ZH_HANT_NUMBER_PATTERN)+)(?:\\s*)(?:點|時|:|：)" +
     "(?:\\s*)" +
-    "(\\d+|半|正|整|\(ZH_NUMBER_PATTERN)+)?(?:\\s*)(?:分|:|：)?" +
+    "(\\d+|半|正|整|\(ZH_HANT_NUMBER_PATTERN)+)?(?:\\s*)(?:分|:|：)?" +
     "(?:\\s*)" +
-    "(\\d+|\(ZH_NUMBER_PATTERN)+)?(?:\\s*)(?:秒)?)" +
-    "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?";
+    "(\\d+|\(ZH_HANT_NUMBER_PATTERN)+)?(?:\\s*)(?:秒)?)" +
+    "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?"
 
-private let SECOND_REG_PATTERN = "(?:\\s*(?:到|至|\\-|\\–|\\~|\\〜)\\s*)" +
+private let SECOND_REG_PATTERN = "(?:^\\s*(?:到|至|\\-|\\–|\\~|\\〜)\\s*)" +
     "(?:" +
-    "(今|明|聽|昨|尋|琴)(早|朝|晚)|" +
+    "(今|明|前|大前|後|大後|聽|昨|尋|琴)(早|朝|晚)|" +
     "(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨))|" +
-    "(今|明|聽|昨|尋|琴)(?:日|天)" +
+    "(今|明|前|大前|後|大後|聽|昨|尋|琴)(?:日|天)" +
     "(?:[\\s,，]*)" +
     "(?:(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨)))?" +
     ")?" +
     "(?:[\\s,，]*)" +
-    "(?:(\\d+|\(ZH_NUMBER_PATTERN)+)(?:\\s*)(?:點|時|:|：|点|时)" +
+    "(?:(\\d+|\(ZH_HANT_NUMBER_PATTERN)+)(?:\\s*)(?:點|時|:|：)" +
     "(?:\\s*)" +
-    "(\\d+|半|正|整|\(ZH_NUMBER_PATTERN)+)?(?:\\s*)(?:分|:|：)?" +
+    "(\\d+|半|正|整|\(ZH_HANT_NUMBER_PATTERN)+)?(?:\\s*)(?:分|:|：)?" +
     "(?:\\s*)" +
-    "(\\d+|\(ZH_NUMBER_PATTERN)+)?(?:\\s*)(?:秒)?)" +
+    "(\\d+|\(ZH_HANT_NUMBER_PATTERN)+)?(?:\\s*)(?:秒)?)" +
     "(?:\\s*(A\\.M\\.|P\\.M\\.|AM?|PM?))?"
 
 private let dayGroup1 = 1
@@ -50,10 +51,10 @@ private let minuteGroup = 7
 private let secondGroup = 8
 private let amPmHourGroup = 9
 
-public class ZHTimeExpressionParser: Parser {
+public class ZHHantTimeExpressionParser: Parser {
     override var pattern: String { return FIRST_REG_PATTERN }
     override var language: Language { return .chinese }
-    
+
     override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
         // This pattern can be overlaped Ex. [12] AM, 1[2] AM
         let idx = match.range(at: 0).location
@@ -61,19 +62,18 @@ public class ZHTimeExpressionParser: Parser {
         if idx > 0 && NSRegularExpression.isMatch(forPattern: "[a-zA-Z0-9_]", in: str) {
             return nil
         }
-        
+
         let refMoment = ref
-        var (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
+        let (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         result.tags[.zhHantTimeExpressionParser] = true
-        
+
         var startMoment = refMoment
-        
-        
+
         // ----- Day
         if match.isNotEmpty(atRangeIndex: dayGroup1) {
             let day1 = match.string(from: text, atRangeIndex: dayGroup1)
-            
+
             if day1 == "明" || day1 == "聽" {
                 // Check not "Tomorrow" on late night
                 if refMoment.hour > 1 {
@@ -81,6 +81,14 @@ public class ZHTimeExpressionParser: Parser {
                 }
             } else if day1 == "昨" || day1 == "尋" || day1 == "琴" {
                 startMoment = startMoment.added(-1, .day)
+            } else if day1 == "前" {
+                startMoment = startMoment.added(-2, .day)
+            } else if day1 == "大前" {
+                startMoment = startMoment.added(-3, .day)
+            } else if day1 == "後" {
+                startMoment = startMoment.added(2, .day)
+            } else if day1 == "大後" {
+                startMoment = startMoment.added(3, .day)
             }
             result.start.assign(.day, value: startMoment.day)
             result.start.assign(.month, value: startMoment.month)
@@ -91,6 +99,14 @@ public class ZHTimeExpressionParser: Parser {
                 startMoment = startMoment.added(1, .day)
             } else if day3 == "昨" || day3 == "尋" || day3 == "琴" {
                 startMoment = startMoment.added(-1, .day)
+            } else if day3 == "前" {
+                startMoment = startMoment.added(-2, .day)
+            } else if day3 == "大前" {
+                startMoment = startMoment.added(-3, .day)
+            } else if day3 == "後" {
+                startMoment = startMoment.added(2, .day)
+            } else if day3 == "大後" {
+                startMoment = startMoment.added(3, .day)
             }
             result.start.assign(.day, value: startMoment.day)
             result.start.assign(.month, value: startMoment.month)
@@ -100,60 +116,58 @@ public class ZHTimeExpressionParser: Parser {
             result.start.imply(.month, to: startMoment.month)
             result.start.imply(.year, to: startMoment.year)
         }
-        
+
         var hour = 0
         var minute = 0
         var meridiem = -1
-        
+
         // ----- Second
         if match.isNotEmpty(atRangeIndex: secondGroup) {
             let secondString = match.string(from: text, atRangeIndex: secondGroup)
-            guard let second = NSRegularExpression.isMatch(forPattern: "\\d+", in: secondString) ? Int(secondString) : ZHStringToNumber(text: secondString) else {
-                return nil
-            }
-            
+            let second = Int(secondString) ?? ZHStringToNumber(text: secondString, map: ZH_HANT_NUMBER)
+
             if second >= 60 {
                 return nil
             }
             result.start.assign(.second, value: second)
         }
-        
+
         var hourString = match.string(from: text, atRangeIndex: hourGroup)
-        hour = NSRegularExpression.isMatch(forPattern: "\\d+", in: hourString) ? Int(hourString)! : ZHStringToNumber(text: hourString)
-        
+        hour = Int(hourString) ?? ZHStringToNumber(text: hourString, map: ZH_HANT_NUMBER)
+
         // ----- Minutes
         if match.isNotEmpty(atRangeIndex: minuteGroup) {
             let minuteString = match.string(from: text, atRangeIndex: minuteGroup)
-            
+
             if minuteString == "半" {
-                minute = 30;
+                minute = 30
             } else if minuteString == "正" || minuteString == "整" {
-                minute = 0;
+                minute = 0
             } else {
-                minute = NSRegularExpression.isMatch(forPattern: "\\d+", in: minuteString) ? Int(minuteString)! : ZHStringToNumber(text: minuteString)
+                minute = Int(minuteString) ?? ZHStringToNumber(text: minuteString, map: ZH_HANT_NUMBER)
             }
         } else if hour > 100 {
             minute = hour % 100
-            hour =  hour / 100
+            hour = hour / 100
         }
-        
+
         if minute >= 60 {
             return nil
         }
-        
+
         if hour > 24 {
             return nil
         }
         if hour >= 12 {
             meridiem = 1
         }
-        
+
         // ----- AM & PM
         if match.isNotEmpty(atRangeIndex: amPmHourGroup) {
             if hour > 12 {
                 return nil
             }
-            
+
             let ampm = match.string(from: text, atRangeIndex: amPmHourGroup).firstString?.lowercased() ?? ""
             if ampm == "a" {
                 meridiem = 0
@@ -161,7 +175,7 @@ public class ZHTimeExpressionParser: Parser {
                     hour = 0
                 }
             }
-            
+
             if ampm == "p" {
                 meridiem = 1
                 if hour != 12 {
@@ -211,10 +225,10 @@ public class ZHTimeExpressionParser: Parser {
                 }
             }
         }
-        
+
         result.start.assign(.hour, value: hour)
         result.start.assign(.minute, value: minute)
-        
+
         if meridiem >= 0 {
             result.start.assign(.meridiem, value: meridiem)
         } else {
@@ -224,11 +238,11 @@ public class ZHTimeExpressionParser: Parser {
                 result.start.imply(.meridiem, to: 1)
             }
         }
-        
+
         // ==============================================================
         //                  Extracting the "to" chunk
         // ==============================================================
-        
+
         let regex = try? NSRegularExpression(pattern: SECOND_REG_PATTERN, options: .caseInsensitive)
         let secondText = text.substring(from: result.index + result.text.count)
         guard let match = regex?.firstMatch(in: secondText, range: NSRange(location: 0, length: secondText.count)) else {
@@ -236,14 +250,18 @@ public class ZHTimeExpressionParser: Parser {
             if NSRegularExpression.isMatch(forPattern: "^\\d+$", in: result.text) {
                 return nil
             }
-            
+
             return result
         }
-        matchText = match.string(from: secondText, atRangeIndex: 0)
-        
+
         var endMoment = startMoment
+        if match.isNotEmpty(atRangeIndex: dayGroup1) || match.isNotEmpty(atRangeIndex: dayGroup3) {
+            // If the end time expression has a relative day specified (e.g. "Tomorrow"),
+            // we should reset the end date to the reference date to calculate the relative date correctly.
+            endMoment = refMoment
+        }
         result.end = ParsedComponents(components: nil, ref: nil)
-        
+
         // ----- Day
         if match.isNotEmpty(atRangeIndex: dayGroup1) {
             let day1 = match.string(from: secondText, atRangeIndex: dayGroup1)
@@ -254,8 +272,16 @@ public class ZHTimeExpressionParser: Parser {
                 }
             } else if day1 == "昨" || day1 == "尋" || day1 == "琴" {
                 endMoment = endMoment.added(-1, .day)
+            } else if day1 == "前" {
+                endMoment = endMoment.added(-2, .day)
+            } else if day1 == "大前" {
+                endMoment = endMoment.added(-3, .day)
+            } else if day1 == "後" {
+                endMoment = endMoment.added(2, .day)
+            } else if day1 == "大後" {
+                endMoment = endMoment.added(3, .day)
             }
-            
+
             result.end!.assign(.day, value: endMoment.day)
             result.end!.assign(.month, value: endMoment.month)
             result.end!.assign(.year, value: endMoment.year)
@@ -265,6 +291,14 @@ public class ZHTimeExpressionParser: Parser {
                 endMoment = endMoment.added(1, .day)
             } else if day3 == "昨" || day3 == "尋" || day3 == "琴" {
                 endMoment = endMoment.added(-1, .day)
+            } else if day3 == "前" {
+                endMoment = endMoment.added(-2, .day)
+            } else if day3 == "大前" {
+                endMoment = endMoment.added(-3, .day)
+            } else if day3 == "後" {
+                endMoment = endMoment.added(2, .day)
+            } else if day3 == "大後" {
+                endMoment = endMoment.added(3, .day)
             }
             result.end!.assign(.day, value: endMoment.day)
             result.end!.assign(.month, value: endMoment.month)
@@ -274,52 +308,52 @@ public class ZHTimeExpressionParser: Parser {
             result.end!.imply(.month, to: endMoment.month)
             result.end!.imply(.year, to: endMoment.year)
         }
-        
+
         hour = 0
         minute = 0
         meridiem = -1
-        
+
         // ----- Second
         if match.isNotEmpty(atRangeIndex: secondGroup) {
             let secondString = match.string(from: secondText, atRangeIndex: secondGroup)
-            let second = NSRegularExpression.isMatch(forPattern: "\\d+", in: secondString) ? Int(secondString)! : ZHStringToNumber(text: secondString)
-            
+            let second = Int(secondString) ?? ZHStringToNumber(text: secondString, map: ZH_HANT_NUMBER)
+
             if second >= 60 {
                 return nil
             }
             result.end!.assign(.second, value: second)
         }
-        
+
         hourString = match.string(from: secondText, atRangeIndex: hourGroup)
-        hour = NSRegularExpression.isMatch(forPattern: "\\d+", in: hourString) ? Int(hourString)! : ZHStringToNumber(text: hourString)
-        
+        hour = Int(hourString) ?? ZHStringToNumber(text: hourString, map: ZH_HANT_NUMBER)
+
         // ----- Minutes
         if match.isNotEmpty(atRangeIndex: minuteGroup) {
             let minuteString = match.string(from: secondText, atRangeIndex: minuteGroup)
-            
+
             if minuteString == "半" {
                 minute = 30
             } else if minuteString == "正" || minuteString == "整" {
                 minute = 0
             } else {
-                minute = NSRegularExpression.isMatch(forPattern: "\\d+", in: minuteString) ? Int(minuteString)! : ZHStringToNumber(text: minuteString)
+                minute = Int(minuteString) ?? ZHStringToNumber(text: minuteString, map: ZH_HANT_NUMBER)
             }
         } else if hour > 100 {
-            minute = hour % 100;
+            minute = hour % 100
             hour = hour / 100
         }
-        
+
         if minute >= 60 {
             return nil
         }
-        
+
         if hour > 24 {
             return nil
         }
         if hour >= 12 {
             meridiem = 1
         }
-        
+
         // ----- AM & PM
         if match.isNotEmpty(atRangeIndex: amPmHourGroup) {
             if hour > 12 {
@@ -332,31 +366,31 @@ public class ZHTimeExpressionParser: Parser {
                     hour = 0
                 }
             }
-            
+
             if ampm == "p" {
                 meridiem = 1
                 if hour != 12 {
                     hour += 12
                 }
             }
-            
+
             if !result.start.isCertain(component: .meridiem) {
                 if meridiem == 0 {
                     result.start.imply(.meridiem, to: 0)
-                    
+
                     if result.start[.hour] == 12 {
                         result.start.assign(.hour, value: 0)
                     }
-                    
+
                 } else {
                     result.start.imply(.meridiem, to: 1)
-                    
+
                     if result.start[.hour] != 12 {
                         result.start.assign(.hour, value: result.start[.hour]! + 12)
                     }
                 }
             }
-            
+
         } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup1) {
             let zhAMPMString1 = match.string(from: secondText, atRangeIndex: zhAmPmHourGroup1)
             let zhAMPM1 = zhAMPMString1.firstString ?? ""
@@ -400,7 +434,7 @@ public class ZHTimeExpressionParser: Parser {
                 }
             }
         }
-        
+
         result.text = result.text + match.string(from: secondText, atRangeIndex: 0)
         result.end!.assign(.hour, value: hour)
         result.end!.assign(.minute, value: minute)
@@ -411,16 +445,16 @@ public class ZHTimeExpressionParser: Parser {
             if startAtPM && result.start[.hour]! > hour {
                 // 10pm - 1 (am)
                 result.end!.imply(.meridiem, to: 0)
-                
+
             } else if hour > 12 {
                 result.end!.imply(.meridiem, to: 1)
             }
         }
-        
-        if (result.end!.date.timeIntervalSince1970 < result.start.date.timeIntervalSince1970) {
+
+        if result.end!.date.timeIntervalSince1970 < result.start.date.timeIntervalSince1970 {
             result.end!.imply(.day, to: result.end![.day]! + 1)
         }
-        
-        return result;
+
+        return result
     }
 }

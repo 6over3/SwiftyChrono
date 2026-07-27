@@ -18,6 +18,7 @@ class TestZHHant: ChronoJSXCTestCase {
         "test_zh_hant_deadline",
         "test_zh_hant_time_exp",
         "test_zh_hant_weekday",
+        "test_zh_hant_ago",
     ]
 
     func testExample() {

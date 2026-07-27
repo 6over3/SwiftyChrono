@@ -87,10 +87,18 @@ public class ChronoJSXCTestCase: XCTestCase, ChronoJSTestable {
         }
         jsContext.setObject(unsafeBitCast(ok, to: AnyObject.self), forKeyedSubscript: "ok" as (NSCopying & NSObjectProtocol))
         
+        func chrono(forMode mode: String) -> Chrono {
+            switch mode {
+            case "strict": return Chrono.strict
+            case "casual": return Chrono.casual
+            default: return self.chrono
+            }
+        }
+
         /// set function callbacks
         //  chronoParse()
         let chronoParse: @convention(block) (String, NSDate, NSDictionary, String) -> NSArray = { (text, ref, opt, mode) -> NSArray in
-            let chrono = mode == "strict" ? Chrono.strict : mode == "casual" ? Chrono.casual : self.chrono
+            let chrono = chrono(forMode: mode)
             self.lastTextForFailCase = text
             
             var opts = [OptionType: Int]()
@@ -108,7 +116,7 @@ public class ChronoJSXCTestCase: XCTestCase, ChronoJSTestable {
         /// set function callbacks
         //  chronoParseDate()
         let chronoParseDate: @convention(block) (String, NSDate, NSDictionary, String) -> NSDate = { (text, ref, opt, mode) in
-            let chrono = mode == "strict" ? Chrono.strict : mode == "casual" ? Chrono.casual : self.chrono
+            let chrono = chrono(forMode: mode)
             self.lastTextForFailCase = text
             
             var opts = [OptionType: Int]()
@@ -161,6 +169,37 @@ public class ChronoJSXCTestCase: XCTestCase, ChronoJSTestable {
                 "            return chronoParseDate(text, ref, opt, 'casual');" +
                 "        }" +
                 "    }" +
+            "};"
+        )
+
+        /// test helpers matching chrono.js test/test_util.ts, so upstream
+        /// test cases can be ported near-verbatim
+        jsContext.evaluateScript(
+            "testSingleCase = function(c, text, arg1, arg2, arg3) {" +
+            "    var ref = new Date(), opt = {}, check = null;" +
+            "    if (typeof arg1 === 'function') {" +
+            "        check = arg1;" +
+            "    } else if (arg1 instanceof Date) {" +
+            "        ref = arg1;" +
+            "        if (typeof arg2 === 'function') { check = arg2; }" +
+            "        else { opt = arg2 || {}; check = arg3; }" +
+            "    } else {" +
+            "        opt = arg1 || {};" +
+            "        check = arg2;" +
+            "    }" +
+            "    var results = c.parse(text, ref, opt);" +
+            "    ok(results.length == 1, 'testSingleCase: \"' + text + '\" => ' + results.length + ' results');" +
+            "    if (results.length == 1 && check) { check(results[0], text); }" +
+            "};" +
+            "testUnexpectedResult = function(c, text, ref, opt) {" +
+            "    var results = c.parse(text, ref || new Date(), opt || {});" +
+            "    ok(results.length == 0, 'testUnexpectedResult: \"' + text + '\" => ' + results.length + ' results');" +
+            "};" +
+            "testWithExpectedDate = function(c, text, expectedDate) {" +
+            "    testSingleCase(c, text, function(result) {" +
+            "        ok(Math.abs(result.start.date().getTime() - expectedDate.getTime()) < 100000," +
+            "           'testWithExpectedDate: \"' + text + '\" => ' + result.start.date());" +
+            "    });" +
             "};"
         )
     }
