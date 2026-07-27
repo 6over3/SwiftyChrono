@@ -69,7 +69,15 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         CATimeExpressionParser(strictMode: strictMode),
         CAMonthNameLittleEndianParser(strictMode: strictMode),
         CASlashDateFormatParser(strictMode: strictMode),
-        
+
+        // RU
+        RUDeadlineFormatParser(strictMode: strictMode),
+        RUMonthNameLittleEndianParser(strictMode: strictMode),
+        RUMonthNameParser(strictMode: strictMode),
+        RUSlashDateFormatParser(strictMode: strictMode),
+        RUTimeAgoFormatParser(strictMode: strictMode),
+        RUTimeExpressionParser(strictMode: strictMode),
+
     ], refiners: [
         // Removing overlaping first
         OverlapRemovalRefiner(),
@@ -84,7 +92,9 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         JPMergeDateRangeRefiner(),
         DEMergeDateTimeRefiner(),
         DEMergeDateRangeRefiner(),
-        
+        RUMergeDateTimeRefiner(),
+        RUMergeDateRangeRefiner(),
+
         // Extract additional info later
         ExtractTimezoneOffsetRefiner(),
         ExtractTimezoneAbbrRefiner(),
@@ -127,12 +137,17 @@ public func casualModeOption() -> ModeOptio {
         // CA
         CACasualDateParser(strictMode: false),
         CAWeekdayParser(strictMode: false),
-        
+
+        // RU
+        RUCasualTimeParser(strictMode: false),
+        RUCasualDateParser(strictMode: false),
+        RUWeekdayParser(strictMode: false),
+
     ], at: 0)
     
     return options
 }
 
 public enum Language {
-    case english, spanish, catalan, french, japanese, german, chinese
+    case english, spanish, catalan, french, japanese, german, chinese, russian
 }
