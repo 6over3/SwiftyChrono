@@ -45,10 +45,7 @@ public class ZHHantCasualDateParser: Parser {
             let time1 = try match.string(from: text, atRangeIndex: timeGroup1)
 
             if day1 == "明" || day1 == "聽" {
-                // Check not "Tomorrow" on late night
-                if refMoment.hour > 1 {
-                    startMoment = try startMoment.added(1, .day)
-                }
+                startMoment = try startMoment.added(1, .day)
             } else if day1 == "昨" || day1 == "尋" || day1 == "琴" {
                 startMoment = try startMoment.added(-1, .day)
             } else if day1 == "前" {
@@ -91,10 +88,7 @@ public class ZHHantCasualDateParser: Parser {
             let day3 = try match.string(from: text, atRangeIndex: dayGroup3)
 
             if day3 == "明" || day3 == "聽" {
-                // Check not "Tomorrow" on late night
-                if refMoment.hour > 1 {
-                    startMoment = try startMoment.added(1, .day)
-                }
+                startMoment = try startMoment.added(1, .day)
             } else if day3 == "昨" || day3 == "尋" || day3 == "琴" {
                 startMoment = try startMoment.added(-1, .day)
             } else if day3 == "前" {

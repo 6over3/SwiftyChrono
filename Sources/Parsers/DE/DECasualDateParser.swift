@@ -23,17 +23,12 @@ public class DECasualDateParser: Parser {
         let lowerText = matchText.lowercased()
         
         if try NSRegularExpression.isMatch(forPattern: "^morgen", in: lowerText) {
-            // Check not "Tomorrow" on late night
-            if refMoment.hour > 1 {
-                startMoment = try startMoment.added(1, .day)
-            }
+            startMoment = try startMoment.added(1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "^gestern", in: lowerText) {
             startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "letzte\\s*Nacht", in: lowerText) {
             result.start.imply(.hour, to: 0)
-            if refMoment.hour > 6 {
-                startMoment = try startMoment.added(-1, .day)
-            }
+            startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "jetzt", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)

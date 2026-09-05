@@ -40,10 +40,7 @@ public class CACasualDateParser: Parser {
         let lowerText = regex.stringByReplacingMatches(in: matchText.lowercased(), range: NSRange(location: 0, length: matchText.utf16.count), withTemplate: " ")
         
         if lowerText == "demà" {
-            // Check not "Tomorrow" on late night
-            if ref.hour > 1 {
-                startMoment = try startMoment.added(1, .day)
-            }
+            startMoment = try startMoment.added(1, .day)
             
         } else if lowerText == "ahir" {
             
@@ -51,9 +48,7 @@ public class CACasualDateParser: Parser {
             
         } else if try NSRegularExpression.isMatch(forPattern: "ahir\\s+a\\s+la\\s+nit", in: lowerText) {
             result.start.imply(.hour, to: 0)
-            if refMoment.hour > 6 {
-                startMoment = try startMoment.added(-1, .day)
-            }
+            startMoment = try startMoment.added(-1, .day)
 
         } else if try NSRegularExpression.isMatch(forPattern: "aquest", in: lowerText) {
             

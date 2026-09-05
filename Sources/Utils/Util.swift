@@ -1,9 +1,6 @@
 // Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-let HALF = Int.min
-let HALF_SECOND_IN_MS = 500_000_000 // nanoseconds, despite the inherited name
-
 func sortTwoNumbers(_ first: Int, _ second: Int) -> (lessNumber: Int, greaterNumber: Int) {
   (min(first, second), max(first, second))
 }

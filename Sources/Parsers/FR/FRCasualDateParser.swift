@@ -25,10 +25,7 @@ public class FRCasualDateParser: Parser {
         
             
         if try NSRegularExpression.isMatch(forPattern: "demain", in: lowerText) {
-            // Check not "Tomorrow" on late night
-            if refMoment.hour > 1 {
-                startMoment = try startMoment.added(1, .day)
-            }
+            startMoment = try startMoment.added(1, .day)
         }
         
         if try NSRegularExpression.isMatch(forPattern: "hier", in: lowerText) {
@@ -41,9 +38,7 @@ public class FRCasualDateParser: Parser {
             result.start.imply(.meridiem, to: 1)
         } else if try NSRegularExpression.isMatch(forPattern: "la\\s*veille", in: lowerText) {
             result.start.imply(.hour, to: 0)
-            if refMoment.hour > 6 {
-                startMoment = try startMoment.added(-1, .day)
-            }
+            startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "(après-midi|aprem)", in: lowerText) {
             result.start.imply(.hour, to: 14)
         } else if try NSRegularExpression.isMatch(forPattern: "(soir)", in: lowerText) {

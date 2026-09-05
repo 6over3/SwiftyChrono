@@ -27,29 +27,19 @@ public class RUCasualDateParser: Parser {
             result.start.imply(.meridiem, to: 1)
             
         } else if try NSRegularExpression.isMatch(forPattern: "^завтра", in: lowerText) {
-            // Check not "Tomorrow" on late night
-            if refMoment.hour > 1 {
-                startMoment = try startMoment.added(1, .day)
-            }
+            startMoment = try startMoment.added(1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "^послезавтра", in: lowerText) {
-            // Check not "Tomorrow" on late night
-            if refMoment.hour > 1 {
-                startMoment = try startMoment.added(2, .day)
-            }
+            startMoment = try startMoment.added(2, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "^вчера", in: lowerText) {
             startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "^позавчера", in: lowerText) {
             startMoment = try startMoment.added(-2, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "прошлой\\s*ночью", in: lowerText) {
             result.start.imply(.hour, to: 0)
-            if refMoment.hour > 6 {
-                startMoment = try startMoment.added(-1, .day)
-            }
+            startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "прошлым\\s*вечером", in: lowerText) {
             result.start.imply(.hour, to: 15)
-            if refMoment.hour > 6 {
-                startMoment = try startMoment.added(-1, .day)
-            }
+            startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "сейчас", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)
