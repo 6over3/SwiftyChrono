@@ -39,6 +39,17 @@ Results may share a source span; consumers retain their distinct interpretations
 This fork does not
 provide general language understanding or equivalent date coverage in every language.
 
+Numeric timezone offsets are validated as complete values, including minute
+ranges and Foundation's representable offsets. ISO-shaped timestamps are captured
+before field validation so a malformed clock or offset cannot become a shorter
+valid date. Explicit endpoint offsets are attached before date/range merging and
+are not overwritten by a trailing abbreviation. For a date without a clock, use
+an explicit UTC/GMT prefix; a bare hyphen remains available for date-range grammar.
+
+Timezone abbreviations still use inherited, incomplete mappings; ambiguity and
+historical-offset handling are not yet repaired. Numeric offsets do not imply
+that these abbreviations or all date-range grammars are production-validated.
+
 ## Result and error contracts
 
 - `ParsedResult.index` is a UTF-16 offset into the original input, matching
