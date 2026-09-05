@@ -1,3 +1,13 @@
+# Unreleased — 6over3 explicit-context fork
+
+* Require a captured reference instant and Gregorian civil calendar for parsing.
+* Carry calendar/time-zone context through arithmetic and parsed endpoints.
+* Replace global date configuration and implicit reference dates with explicit APIs.
+* Unify regex and source coordinates as UTF-16, including Unicode boundaries.
+* Propagate date/source errors and preserve month/year rollover in calendar-day shifts.
+* Split parsed values, date arithmetic, and component units into focused files.
+* Production sources compile; inherited tests are not updated or executed in this patch.
+
 # 2.0.0
 
 * Swift 5.10+

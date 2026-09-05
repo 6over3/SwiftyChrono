@@ -16,17 +16,17 @@ public class CADeadlineFormatParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .catalan }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         result.tags[.caDeadlineFormatParser] = true
         
         let number: Int
-        let numberText = match.string(from: text, atRangeIndex: 3).lowercased()
+        let numberText = try match.string(from: text, atRangeIndex: 3).lowercased()
         let parsedNumber = Int(numberText)
         
         if parsedNumber == nil {
-            if NSRegularExpression.isMatch(forPattern: "mig|mitja", in: numberText) {
+            if try NSRegularExpression.isMatch(forPattern: "mig|mitja", in: numberText) {
                 number = HALF
             } else {
                 number = 1
@@ -35,10 +35,10 @@ public class CADeadlineFormatParser: Parser {
             number = parsedNumber!
         }
         
-        let number4 = match.string(from: text, atRangeIndex: 4).lowercased()
+        let number4 = try match.string(from: text, atRangeIndex: 4).lowercased()
         var date = ref
-        if NSRegularExpression.isMatch(forPattern: "dia|dies", in: number4) {
-            date = number != HALF ? date.added(number, .day) : date.added(12, .hour)
+        if try NSRegularExpression.isMatch(forPattern: "dia|dies", in: number4) {
+            date = number != HALF ? try date.added(number, .day) : try date.added(12, .hour)
             
             result.start.assign(.year, value: date.year)
             result.start.assign(.month, value: date.month)
@@ -47,10 +47,10 @@ public class CADeadlineFormatParser: Parser {
         }
         
         
-        if NSRegularExpression.isMatch(forPattern: "hor", in: number4) {
-            date = number != HALF ? date.added(number, .hour) : date.added(30, .minute)
-        } else if NSRegularExpression.isMatch(forPattern: "minut", in: number4) {
-            date = number != HALF ? date.added(number, .minute) : date.added(30, .second)
+        if try NSRegularExpression.isMatch(forPattern: "hor", in: number4) {
+            date = number != HALF ? try date.added(number, .hour) : try date.added(30, .minute)
+        } else if try NSRegularExpression.isMatch(forPattern: "minut", in: number4) {
+            date = number != HALF ? try date.added(number, .minute) : try date.added(30, .second)
         }
         
         result.start.imply(.year, to: date.year)
@@ -62,4 +62,3 @@ public class CADeadlineFormatParser: Parser {
         return result
     }
 }
-

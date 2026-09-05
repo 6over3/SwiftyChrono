@@ -22,7 +22,7 @@ private let prefixGroup = 2
 private let weekdayGroup = 3
 private let postfixGroup = 4
 
-public func ruUpdateParsedComponent(result: ParsedResult, ref: Date, offset: Int, modifier: String) -> ParsedResult {
+public func ruUpdateParsedComponent(result: ParsedResult, ref: ChronoDate, offset: Int, modifier: String) throws -> ParsedResult {
     var result = result
     
     var startMoment = ref
@@ -49,7 +49,7 @@ public func ruUpdateParsedComponent(result: ParsedResult, ref: Date, offset: Int
         }
     }
     
-    startMoment = startMoment.setOrAdded(weekday, .weekday)
+    startMoment = try startMoment.setOrAdded(weekday, .weekday)
     
     result.start.assign(.weekday, value: offset)
     if startMomentFixed {
@@ -69,20 +69,20 @@ public class RUWeekdayParser: Parser {
     override var pattern: String { PATTERN }
     override var language: Language { .russian }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        let dayOfWeek = match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
+        let dayOfWeek = try match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
         guard let offset = DAYS_OFFSET[dayOfWeek] else {
             return nil
         }
         
-        let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? match.string(from: text, atRangeIndex: prefixGroup) : nil
-        let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? match.string(from: text, atRangeIndex: postfixGroup) : nil
+        let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
+        let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
         let norm = (prefix ?? postfix ?? "").lowercased()
         
-        result = ruUpdateParsedComponent(result: result, ref: ref, offset: offset, modifier: norm)
+        result = try ruUpdateParsedComponent(result: result, ref: ref, offset: offset, modifier: norm)
         result.tags[.ruWeekdayParser] = true
         return result
     }

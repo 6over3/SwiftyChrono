@@ -27,20 +27,20 @@ public class CAMonthNameLittleEndianParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .catalan }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        let month = CA_MONTH_OFFSET[match.string(from: text, atRangeIndex: monthNameGroup).lowercased()]!
+        let month = CA_MONTH_OFFSET[try match.string(from: text, atRangeIndex: monthNameGroup).lowercased()]!
         
-        let day = Int(match.string(from: text, atRangeIndex: dateGroup))!
+        let day = Int(try match.string(from: text, atRangeIndex: dateGroup))!
         
         if match.isNotEmpty(atRangeIndex: yearGroup) {
-            var year = Int(match.string(from: text, atRangeIndex: yearGroup).trimmed())!
+            var year = Int(try match.string(from: text, atRangeIndex: yearGroup).trimmed())!
             
             if match.isNotEmpty(atRangeIndex: yearBeGroup) {
-                let yearBe = match.string(from: text, atRangeIndex: yearBeGroup)
-                if NSRegularExpression.isMatch(forPattern: "a\\.?\\s*c\\.?", in: yearBe) {
+                let yearBe = try match.string(from: text, atRangeIndex: yearBeGroup)
+                if try NSRegularExpression.isMatch(forPattern: "a\\.?\\s*c\\.?", in: yearBe) {
                     // antes de Cristo
                     year = -year
                 }
@@ -55,12 +55,12 @@ public class CAMonthNameLittleEndianParser: Parser {
         } else {
             //Find the most appropriated year
             var refMoment = ref
-            refMoment = refMoment.setOrAdded(month, .month)
-            refMoment = refMoment.setOrAdded(day, .day)
-            refMoment = refMoment.setOrAdded(ref.year, .year)
+            refMoment = try refMoment.setOrAdded(month, .month)
+            refMoment = try refMoment.setOrAdded(day, .day)
+            refMoment = try refMoment.setOrAdded(ref.year, .year)
             
-            let nextYear = refMoment.added(1, .year)
-            let lastYear = refMoment.added(-1, .year)
+            let nextYear = try refMoment.added(1, .year)
+            let lastYear = try refMoment.added(-1, .year)
             if abs(nextYear.differenceOfTimeInterval(to: ref)) < abs(refMoment.differenceOfTimeInterval(to: ref)) {
                 refMoment = nextYear
             } else if abs(lastYear.differenceOfTimeInterval(to: ref)) < abs(refMoment.differenceOfTimeInterval(to: ref)) {
@@ -74,19 +74,18 @@ public class CAMonthNameLittleEndianParser: Parser {
         
         // Weekday component
         if match.isNotEmpty(atRangeIndex: weekdayGroup) {
-            let weekday = CA_WEEKDAY_OFFSET[match.string(from: text, atRangeIndex: weekdayGroup).lowercased()]
+            let weekday = CA_WEEKDAY_OFFSET[try match.string(from: text, atRangeIndex: weekdayGroup).lowercased()]
             result.start.assign(.weekday, value: weekday)
         }
         
         // Text can be 'range' value. Such as '12 - 13 January 2012'
         if match.isNotEmpty(atRangeIndex: dateToGroup) {
             result.end = result.start.clone()
-            result.end?.assign(.day, value: Int(match.string(from: text, atRangeIndex: dateToGroup))!)
+            result.end?.assign(.day, value: Int(try match.string(from: text, atRangeIndex: dateToGroup))!)
         }
         
         result.tags[.caMonthNameLittleEndianParser] = true
         return result
     }
 }
-
 

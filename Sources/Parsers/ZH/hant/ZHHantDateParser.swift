@@ -40,20 +40,20 @@ public class ZHHantDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .chinese }
 
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndexForCHHant(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
 
         let startMoment = ref
 
         //Month
-        let monthString = match.string(from: text, atRangeIndex: monthGroup)
+        let monthString = try match.string(from: text, atRangeIndex: monthGroup)
         let month = Int(monthString) ?? ZHStringToNumber(text: monthString, map: ZH_HANT_NUMBER)
         result.start.assign(.month, value: month)
 
         //Day
         if match.isNotEmpty(atRangeIndex: dayGroup) {
-            let dayString = match.string(from: text, atRangeIndex: dayGroup)
+            let dayString = try match.string(from: text, atRangeIndex: dayGroup)
             let day = Int(dayString) ?? ZHStringToNumber(text: dayString, map: ZH_HANT_NUMBER)
             result.start.assign(.day, value: day)
         } else {
@@ -62,7 +62,7 @@ public class ZHHantDateParser: Parser {
 
         //Year
         if match.isNotEmpty(atRangeIndex: yearGroup) {
-            let yearString = match.string(from: text, atRangeIndex: yearGroup)
+            let yearString = try match.string(from: text, atRangeIndex: yearGroup)
             let year = Int(yearString) ?? ZHStringToYear(text: yearString, map: ZH_HANT_NUMBER)
             result.start.assign(.year, value: year)
         } else {

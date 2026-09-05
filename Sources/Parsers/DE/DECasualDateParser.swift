@@ -14,27 +14,27 @@ public class DECasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .german }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
         var startMoment = refMoment
         let lowerText = matchText.lowercased()
         
-        if NSRegularExpression.isMatch(forPattern: "^morgen", in: lowerText) {
+        if try NSRegularExpression.isMatch(forPattern: "^morgen", in: lowerText) {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 1 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "^gestern", in: lowerText) {
-            startMoment = startMoment.added(-1, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "letzte\\s*Nacht", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^gestern", in: lowerText) {
+            startMoment = try startMoment.added(-1, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "letzte\\s*Nacht", in: lowerText) {
             result.start.imply(.hour, to: 0)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "jetzt", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "jetzt", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)
             result.start.imply(.second, to: refMoment.second)
@@ -48,4 +48,3 @@ public class DECasualDateParser: Parser {
         return result
     }
 }
-

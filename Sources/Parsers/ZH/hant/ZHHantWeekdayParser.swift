@@ -19,16 +19,16 @@ public class ZHHantWeekdayParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .chinese }
 
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndexForCHHant(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
 
-        let dayOfWeek = match.string(from: text, atRangeIndex: weekdayGroup)
+        let dayOfWeek = try match.string(from: text, atRangeIndex: weekdayGroup)
         guard let offset = ZH_WEEKDAY_OFFSET[dayOfWeek] else {
             return nil
         }
 
-        result = updateParsedComponent(result: result, ref: ref, offset: offset, modifier: "")
+        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: "")
         result.tags[.zhHantWeekdayParser] = true
         return result
     }

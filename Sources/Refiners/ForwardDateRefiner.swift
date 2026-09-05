@@ -9,7 +9,7 @@
 import Foundation
 
 class ForwardDateRefiner: Refiner {
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         if !opt.keys.contains(.forwardDate) && !opt.keys.contains(.forwardDate) {
             return results
         }
@@ -22,11 +22,11 @@ class ForwardDateRefiner: Refiner {
             var result = results[i]
             var refMoment = result.ref
             
-            if result.start.isCertain(component: .day) && result.start.isCertain(component: .month) &&
-                !result.start.isCertain(component: .year) && refMoment.isAfter(result.start.moment) {
+            if try result.start.isCertain(component: .day) && result.start.isCertain(component: .month) &&
+                !result.start.isCertain(component: .year) && refMoment.isAfter((try result.start.date)) {
                 // Adjust year into the future
                 for _ in 0..<3 {
-                    if !refMoment.isAfter(result.start.moment) {
+                    if try !refMoment.isAfter((result.start.date)) {
                         break
                     }
                     
@@ -39,13 +39,13 @@ class ForwardDateRefiner: Refiner {
                 result.tags[.forwardDateRefiner] = true
             }
             
-            if !result.start.isCertain(component: .day) && !result.start.isCertain(component: .month) &&
+            if try !result.start.isCertain(component: .day) && !result.start.isCertain(component: .month) &&
                 !result.start.isCertain(component: .year) && result.start.isCertain(component: .weekday) &&
-                refMoment.isAfter(result.start.moment)
+                refMoment.isAfter((try result.start.date))
             {
                 // Adjust date to the coming week
                 let weekday = result.start[.weekday]!
-                refMoment = refMoment.setOrAdded(refMoment.weekday > weekday ? weekday + 7 : weekday, .weekday)
+                refMoment = try refMoment.setOrAdded(refMoment.weekday > weekday ? weekday + 7 : weekday, .weekday)
                 
                 result.start.imply(.day, to: refMoment.day)
                 result.start.imply(.month, to: refMoment.month)

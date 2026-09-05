@@ -51,7 +51,7 @@ extension String {
         var str = self
         let pattern = fullWidth ? "[0-9]+" : "[０-９]+"
         let regex = try! NSRegularExpression(pattern: pattern, options: [])
-        let results = regex.matches(in: str, options: [], range: NSMakeRange(0, str.count))
+        let results = regex.matches(in: str, options: [], range: NSMakeRange(0, str.utf16.count))
         
         results.reversed().forEach {
             let subStr = (str as NSString).substring(with: $0.range)

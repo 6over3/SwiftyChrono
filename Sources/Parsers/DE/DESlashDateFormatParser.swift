@@ -45,24 +45,24 @@ public class DESlashDateFormatParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .german }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        if (match.isNotEmpty(atRangeIndex: openningGroup) && match.string(from: text, atRangeIndex: openningGroup) == "/") ||
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        if try (match.isNotEmpty(atRangeIndex: openningGroup) && match.string(from: text, atRangeIndex: openningGroup) == "/") ||
             (match.isNotEmpty(atRangeIndex: endingGroup) && match.string(from: text, atRangeIndex: endingGroup) == "/") {
             // Long skip, if there is some overlapping like:
             // XX[/YY/ZZ]
             // [XX/YY/]ZZ
             let match0 = match.range(at: 0)
-            return ParsedResult.moveIndexMode(index: match0.location + match0.length)
+            return ParsedResult.moveIndexMode(ref: ref, index: match0.location + match0.length)
         }
         
-        let openGroup = match.isNotEmpty(atRangeIndex: openningGroup) ? match.string(from: text, atRangeIndex: openningGroup) : ""
-        let endGroup = match.isNotEmpty(atRangeIndex: endingGroup) ? match.string(from: text, atRangeIndex: endingGroup) : ""
-        let fullMatchText = match.string(from: text, atRangeIndex: 0)
+        let openGroup = match.isNotEmpty(atRangeIndex: openningGroup) ? try match.string(from: text, atRangeIndex: openningGroup) : ""
+        let endGroup = match.isNotEmpty(atRangeIndex: endingGroup) ? try match.string(from: text, atRangeIndex: endingGroup) : ""
+        let fullMatchText = try match.string(from: text, atRangeIndex: 0)
         let index = match.range(at: 0).location + match.range(at: openningGroup).length
-        let matchText = fullMatchText.substring(from: openGroup.count, to: fullMatchText.count - endGroup.count)
+        let matchText = try fullMatchText.substring(from: openGroup.utf16.count, to: fullMatchText.utf16.count - endGroup.utf16.count)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        if NSRegularExpression.isMatch(forPattern: "^\\d\\.\\d$", in: matchText) ||
+        if try NSRegularExpression.isMatch(forPattern: "^\\d\\.\\d$", in: matchText) ||
             NSRegularExpression.isMatch(forPattern: "^\\d\\.\\d{1,2}\\.\\d{1,2}$", in: matchText) {
             return nil
         }
@@ -72,13 +72,13 @@ public class DESlashDateFormatParser: Parser {
         var day: Int
         
         if match.isNotEmpty(atRangeIndex: day1Group) {
-            year = match.isNotEmpty(atRangeIndex: year1Group) ? Int(match.string(from: text, atRangeIndex: year1Group)) ?? ref.year : ref.year
-            month = match.isNotEmpty(atRangeIndex: month1Group) ? Int(match.string(from: text, atRangeIndex: month1Group)) ?? 0 : 0
-            day = match.isNotEmpty(atRangeIndex: day1Group) ? Int(match.string(from: text, atRangeIndex: day1Group)) ?? 0 : 0
+            year = match.isNotEmpty(atRangeIndex: year1Group) ? Int(try match.string(from: text, atRangeIndex: year1Group)) ?? ref.year : ref.year
+            month = match.isNotEmpty(atRangeIndex: month1Group) ? Int(try match.string(from: text, atRangeIndex: month1Group)) ?? 0 : 0
+            day = match.isNotEmpty(atRangeIndex: day1Group) ? Int(try match.string(from: text, atRangeIndex: day1Group)) ?? 0 : 0
         } else {
-            year = match.isNotEmpty(atRangeIndex: year2Group) ? Int(match.string(from: text, atRangeIndex: year2Group)) ?? ref.year : ref.year
-            month = match.isNotEmpty(atRangeIndex: month2Group) ? Int(match.string(from: text, atRangeIndex: month2Group)) ?? 0 : 0
-            day = match.isNotEmpty(atRangeIndex: day2Group) ? Int(match.string(from: text, atRangeIndex: day2Group)) ?? 0 : 0
+            year = match.isNotEmpty(atRangeIndex: year2Group) ? Int(try match.string(from: text, atRangeIndex: year2Group)) ?? ref.year : ref.year
+            month = match.isNotEmpty(atRangeIndex: month2Group) ? Int(try match.string(from: text, atRangeIndex: month2Group)) ?? 0 : 0
+            day = match.isNotEmpty(atRangeIndex: day2Group) ? Int(try match.string(from: text, atRangeIndex: day2Group)) ?? 0 : 0
         }
         
         
@@ -112,7 +112,7 @@ public class DESlashDateFormatParser: Parser {
         
         //Day of week
         if match.isNotEmpty(atRangeIndex: weekdayGroup) {
-            let weekday = match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
+            let weekday = try match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
             result.start.assign(.weekday, value: DE_WEEKDAY_OFFSET[weekday])
         }
         
@@ -120,4 +120,3 @@ public class DESlashDateFormatParser: Parser {
         return result
     }
 }
-

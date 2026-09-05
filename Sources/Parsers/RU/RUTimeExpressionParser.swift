@@ -41,15 +41,15 @@ public class RUTimeExpressionParser: Parser {
     override var pattern: String { FIRST_REG_PATTERN }
     override var language: Language { .russian }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         // This pattern can be overlaped Ex. [12] AM, 1[2] AM
         let idx = match.range(at: 0).location
-        let str = text.substring(from: idx - 1, to: idx)
-        if idx > 0 && NSRegularExpression.isMatch(forPattern: "\\w", in: str) {
+        if let str = try text.character(beforeUTF16Offset: idx),
+            try NSRegularExpression.isMatch(forPattern: "\\w", in: str) {
             return nil
         }
         
-        var (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+        var (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         result.tags[.ruTimeExpressionParser] = true
         
@@ -63,7 +63,7 @@ public class RUTimeExpressionParser: Parser {
         
         // ----- Second
         if match.isNotEmpty(atRangeIndex: secondGroup) {
-            if let second = Int(match.string(from: text, atRangeIndex: secondGroup)) {
+            if let second = try Int(match.string(from: text, atRangeIndex: secondGroup)) {
                 if second >= 60 {
                     return nil
                 }
@@ -73,7 +73,7 @@ public class RUTimeExpressionParser: Parser {
         }
         
         // ----- Hours
-        let hourText = match.isNotEmpty(atRangeIndex: hourGroup) ? match.string(from: text, atRangeIndex: hourGroup).lowercased() : ""
+        let hourText = match.isNotEmpty(atRangeIndex: hourGroup) ? try match.string(from: text, atRangeIndex: hourGroup).lowercased() : ""
         if hourText == "вечера" {
             meridiem = 1
             hour = 12
@@ -88,7 +88,7 @@ public class RUTimeExpressionParser: Parser {
         
         // ----- Minutes
         if match.isNotEmpty(atRangeIndex: minuteGroup) {
-            minute = Int(match.string(from: text, atRangeIndex: minuteGroup))!
+            minute = Int(try match.string(from: text, atRangeIndex: minuteGroup))!
         } else if hour > 100 {
             minute = hour % 100
             hour = hour/100
@@ -108,7 +108,7 @@ public class RUTimeExpressionParser: Parser {
                 return nil
             }
             
-            let ampm = match.string(from: text, atRangeIndex: amPmHourGroup).lowercased()
+            let ampm = try match.string(from: text, atRangeIndex: amPmHourGroup).lowercased()
             if ampm == "утра" {
                 meridiem = 0
                 if hour == 12 {
@@ -135,24 +135,24 @@ public class RUTimeExpressionParser: Parser {
         // ==============================================================
         
         let regex = try? NSRegularExpression(pattern: SECOND_REG_PATTERN, options: .caseInsensitive)
-        let secondText = text.substring(from: result.index + result.text.count)
-        guard let match = regex?.firstMatch(in: secondText, range: NSRange(location: 0, length: secondText.count)) else {
+        let secondText = try text.substring(from: result.index + result.text.utf16.count)
+        guard let match = regex?.firstMatch(in: secondText, range: NSRange(location: 0, length: secondText.utf16.count)) else {
             // Not accept number only result
-            if NSRegularExpression.isMatch(forPattern: "^\\d+$", in: result.text) {
+            if try NSRegularExpression.isMatch(forPattern: "^\\d+$", in: result.text) {
                 return nil
             }
             
             return result
         }
-        matchText = match.string(from: secondText, atRangeIndex: 0)
+        matchText = try match.string(from: secondText, atRangeIndex: 0)
         
         // Pattern "YY.YY -XXXX" is more like timezone offset
-        if NSRegularExpression.isMatch(forPattern: "^\\s*(\\+|\\-)\\s*\\d{3,4}$", in: matchText) {
+        if try NSRegularExpression.isMatch(forPattern: "^\\s*(\\+|\\-)\\s*\\d{3,4}$", in: matchText) {
             return result
         }
         
         if result.end == nil {
-            result.end = ParsedComponents(components: nil, ref: result.start.date)
+            result.end = ParsedComponents(components: nil, ref: (try result.start.date))
         }
         
         hour = 0
@@ -161,7 +161,7 @@ public class RUTimeExpressionParser: Parser {
         
         // ----- Second
         if match.isNotEmpty(atRangeIndex: secondGroup) {
-            let second = Int(match.string(from: secondText, atRangeIndex: secondGroup))!
+            let second = Int(try match.string(from: secondText, atRangeIndex: secondGroup))!
             if second >= 60 {
                 return nil
             }
@@ -169,11 +169,11 @@ public class RUTimeExpressionParser: Parser {
             result.end?.assign(.second, value: second)
         }
         
-        hour = Int(match.string(from: secondText, atRangeIndex: hourGroup))!
+        hour = Int(try match.string(from: secondText, atRangeIndex: hourGroup))!
         
         // ----- Minute
         if match.isNotEmpty(atRangeIndex: minuteGroup) {
-            minute = Int(match.string(from: secondText, atRangeIndex: minuteGroup))!
+            minute = Int(try match.string(from: secondText, atRangeIndex: minuteGroup))!
             if minute >= 60 {
                 return result
             }
@@ -196,13 +196,13 @@ public class RUTimeExpressionParser: Parser {
                 return nil
             }
             
-            let ampm = match.string(from: secondText, atRangeIndex: amPmHourGroup).lowercased()
+            let ampm = try match.string(from: secondText, atRangeIndex: amPmHourGroup).lowercased()
             if ampm == "утра" {
                 meridiem = 0
                 if hour == 12 {
                     hour = 0
                     if !result.end!.isCertain(component: .day) {
-                        result.end!.imply(.day, to: result.end![.day]! + 1)
+                        try result.end!.shiftCalendarDays(1)
                     }
                 }
             } else {
@@ -244,9 +244,8 @@ public class RUTimeExpressionParser: Parser {
             }
         }
         
-        if result.end!.date.timeIntervalSince1970 < result.start.date.timeIntervalSince1970 {
-                        let to = result.end![.day]! + 1
-            result.end?.imply(.day, to: to)
+        if try (result.end!.date).timeIntervalSince1970 < (result.start.date).timeIntervalSince1970 {
+                        try result.end?.shiftCalendarDays(1)
         }
         
         return result

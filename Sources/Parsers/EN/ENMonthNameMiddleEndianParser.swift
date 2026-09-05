@@ -39,25 +39,25 @@ private let yearBeGroup2 = 11
 public class ENMonthNameMiddleEndianParser: Parser {
     override var pattern: String { return PATTERN }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        let month = EN_MONTH_OFFSET[match.string(from: text, atRangeIndex: monthNameGroup).lowercased()]!
+        let month = EN_MONTH_OFFSET[try match.string(from: text, atRangeIndex: monthNameGroup).lowercased()]!
         let day = match.isNotEmpty(atRangeIndex: dateNumGroup) ?
-            Int(match.string(from: text, atRangeIndex: dateNumGroup))! :
-            EN_ORDINAL_WORDS[match.string(from: text, atRangeIndex: dateGroup).replacingOccurrences(of: "-", with: " ").lowercased()]!
+            Int(try match.string(from: text, atRangeIndex: dateNumGroup))! :
+            EN_ORDINAL_WORDS[try match.string(from: text, atRangeIndex: dateGroup).replacingOccurrences(of: "-", with: " ").lowercased()]!
         
         let yearGroupNotEmpty = match.isNotEmpty(atRangeIndex: yearGroup)
         if yearGroupNotEmpty || match.isNotEmpty(atRangeIndex: yearGroup2) {
-            var year = Int(match.string(from: text, atRangeIndex: yearGroupNotEmpty ? yearGroup : yearGroup2))!
+            var year = Int(try match.string(from: text, atRangeIndex: yearGroupNotEmpty ? yearGroup : yearGroup2))!
             
-            let yearBE = match.isNotEmpty(atRangeIndex: yearBeGroup) ? match.string(from: text, atRangeIndex: yearBeGroup) : match.isNotEmpty(atRangeIndex: yearBeGroup2) ? match.string(from: text, atRangeIndex: yearBeGroup2) : ""
+            let yearBE = match.isNotEmpty(atRangeIndex: yearBeGroup) ? try match.string(from: text, atRangeIndex: yearBeGroup) : match.isNotEmpty(atRangeIndex: yearBeGroup2) ? try match.string(from: text, atRangeIndex: yearBeGroup2) : ""
             if !yearBE.isEmpty {
-                if NSRegularExpression.isMatch(forPattern: "BE", in: yearBE) {
+                if try NSRegularExpression.isMatch(forPattern: "BE", in: yearBE) {
                     // Buddhist Era
                     year = year - 543
-                } else if NSRegularExpression.isMatch(forPattern: "BC", in: yearBE) {
+                } else if try NSRegularExpression.isMatch(forPattern: "BC", in: yearBE) {
                     // Before Christ
                     year = -year
                 }
@@ -71,11 +71,11 @@ public class ENMonthNameMiddleEndianParser: Parser {
         } else {
             //Find the most appropriated year
             var refMoment = ref
-            refMoment = refMoment.setOrAdded(month, .month)
-            refMoment = refMoment.setOrAdded(day, .day)
+            refMoment = try refMoment.setOrAdded(month, .month)
+            refMoment = try refMoment.setOrAdded(day, .day)
             
-            let nextYear = refMoment.added(1, .year)
-            let lastYear = refMoment.added(-1, .year)
+            let nextYear = try refMoment.added(1, .year)
+            let lastYear = try refMoment.added(-1, .year)
             if abs(nextYear.differenceOfTimeInterval(to: ref)) < abs(refMoment.differenceOfTimeInterval(to: ref)) {
                 refMoment = nextYear
             } else if abs(lastYear.differenceOfTimeInterval(to: ref)) < abs(refMoment.differenceOfTimeInterval(to: ref)) {
@@ -89,15 +89,15 @@ public class ENMonthNameMiddleEndianParser: Parser {
         
         // Weekday component
         if match.isNotEmpty(atRangeIndex: weekdayGroup) {
-            let weekday = EN_WEEKDAY_OFFSET[match.string(from: text, atRangeIndex: weekdayGroup).lowercased()]
+            let weekday = EN_WEEKDAY_OFFSET[try match.string(from: text, atRangeIndex: weekdayGroup).lowercased()]
             result.start.assign(.weekday, value: weekday)
         }
         
         // Text can be 'range' value. Such as 'January 12 - 13, 2012'
         if match.isNotEmpty(atRangeIndex: dateToGroup) {
             let endDate = match.isNotEmpty(atRangeIndex: dateToNumGroup) ?
-                Int(match.string(from: text, atRangeIndex: dateToNumGroup)) :
-                EN_ORDINAL_WORDS[match.string(from: text, atRangeIndex: dateToGroup).trimmed().replacingOccurrences(of: "-", with: " ").lowercased()]
+                Int(try match.string(from: text, atRangeIndex: dateToNumGroup)) :
+                EN_ORDINAL_WORDS[try match.string(from: text, atRangeIndex: dateToGroup).trimmed().replacingOccurrences(of: "-", with: " ").lowercased()]
             
             result.end = result.start.clone()
             result.end?.assign(.day, value: endDate)

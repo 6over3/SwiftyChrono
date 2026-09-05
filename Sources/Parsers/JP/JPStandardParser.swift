@@ -20,19 +20,19 @@ public class JPStandardParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .japanese }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         let index = match.range(at: 0).location
-        let matchText = match.string(from: text, atRangeIndex: 0)
+        let matchText = try match.string(from: text, atRangeIndex: 0)
         
         var startMoment = ref
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        let month = Int(match.string(from: text, atRangeIndex: monthGroup).hankakuOnlyNumber)!
+        let month = Int(try match.string(from: text, atRangeIndex: monthGroup).hankakuOnlyNumber)!
         
-        let day = Int(match.string(from: text, atRangeIndex: dayGroup).hankakuOnlyNumber)!
+        let day = Int(try match.string(from: text, atRangeIndex: dayGroup).hankakuOnlyNumber)!
         
         
-        startMoment = startMoment
+        startMoment = try startMoment
             .setOrAdded(day, .day)
             .setOrAdded(month, .month)
         
@@ -43,9 +43,9 @@ public class JPStandardParser: Parser {
         if match.isEmpty(atRangeIndex: yearGroup) {
             
             //Find the most appropriated year
-            startMoment = startMoment.setOrAdded(ref.year, .year)
-            let nextYear = startMoment.added(1, .year)
-            let lastYear = startMoment.added(-1, .year)
+            startMoment = try startMoment.setOrAdded(ref.year, .year)
+            let nextYear = try startMoment.added(1, .year)
+            let lastYear = try startMoment.added(-1, .year)
             
             if abs(nextYear.differenceOfTimeInterval(to: ref)) < abs(startMoment.differenceOfTimeInterval(to: ref)) {
                 startMoment = nextYear
@@ -56,12 +56,12 @@ public class JPStandardParser: Parser {
             result.start.assign(.day, value: startMoment.day)
             result.start.assign(.month, value: startMoment.month)
             result.start.imply(.year, to: startMoment.year)
-        } else if NSRegularExpression.isMatch(forPattern: "同年", in: text) {
+        } else if try NSRegularExpression.isMatch(forPattern: "同年", in: text) {
             result.start.assign(.year, value: startMoment.year)
         } else {
-            var year = Int(match.string(from: text, atRangeIndex: yearNumberGroup).hankakuOnlyNumber)!
+            var year = Int(try match.string(from: text, atRangeIndex: yearNumberGroup).hankakuOnlyNumber)!
             if match.isNotEmpty(atRangeIndex: eraGroup) {
-                let era = match.string(from: text, atRangeIndex: eraGroup)
+                let era = try match.string(from: text, atRangeIndex: eraGroup)
                 if era == "平成" {
                     year += 1988
                 } else if era == "昭和" {
@@ -76,6 +76,5 @@ public class JPStandardParser: Parser {
         return result
     }
 }
-
 
 

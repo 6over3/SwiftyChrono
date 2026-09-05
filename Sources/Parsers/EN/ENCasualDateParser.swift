@@ -13,8 +13,8 @@ private let PATTERN = "(\\W|^)(now|today|tonight|last\\s*night|(?:tomorrow|tmr|y
 public class ENCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
@@ -26,19 +26,19 @@ public class ENCasualDateParser: Parser {
             result.start.imply(.hour, to: 22)
             result.start.imply(.meridiem, to: 1)
             
-        } else if NSRegularExpression.isMatch(forPattern: "^tomorrow|^tmr", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^tomorrow|^tmr", in: lowerText) {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 1 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "^yesterday", in: lowerText) {
-            startMoment = startMoment.added(-1, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "last\\s*night", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^yesterday", in: lowerText) {
+            startMoment = try startMoment.added(-1, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "last\\s*night", in: lowerText) {
             result.start.imply(.hour, to: 0)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "now", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "now", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)
             result.start.imply(.second, to: refMoment.second)

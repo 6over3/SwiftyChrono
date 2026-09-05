@@ -32,9 +32,9 @@ private func isMoreSpecific(previousResult: ParsedResult, currentResult: ParsedR
     return moreSpecific
 }
 
-private func isAbleToMerge(text: String, previousResult: ParsedResult, currentResult: ParsedResult) -> Bool {
-    let (startIndex, endIndex) = sortTwoNumbers(previousResult.index + previousResult.text.count, currentResult.index)
-    let textBetween = text.substring(from: startIndex, to: endIndex)
+private func isAbleToMerge(text: String, previousResult: ParsedResult, currentResult: ParsedResult) throws -> Bool {
+    let (startIndex, endIndex) = sortTwoNumbers(previousResult.index + previousResult.text.utf16.count, currentResult.index)
+    let textBetween = try text.substring(from: startIndex, to: endIndex)
     
     // Only accepts merge if one of them comes from casual relative date
     let includesRelativeResult = previousResult.tags[.enRelativeDateFormatParser] ?? false || currentResult.tags[.enRelativeDateFormatParser] ?? false
@@ -53,19 +53,19 @@ private func isAbleToMerge(text: String, previousResult: ParsedResult, currentRe
         referToSameDate = previousResult.start[.month]! == currentResult.start[.month] && referToSameDate
     }
     
-    return includesRelativeResult && NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween) && referToSameDate
+    return try includesRelativeResult && NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween) && referToSameDate
 }
 
-func mergeResult(text: String, specificResult: ParsedResult, nonSpecificResult: ParsedResult) -> ParsedResult {
+func mergeResult(text: String, specificResult: ParsedResult, nonSpecificResult: ParsedResult) throws -> ParsedResult {
     var specificResult = specificResult
 
     let startIndex = min(specificResult.index, nonSpecificResult.index)
     let endIndex = max(
-        specificResult.index + specificResult.text.count,
-        nonSpecificResult.index + nonSpecificResult.text.count)
+        specificResult.index + specificResult.text.utf16.count,
+        nonSpecificResult.index + nonSpecificResult.text.utf16.count)
     
     specificResult.index = startIndex
-    specificResult.text = text.substring(from: startIndex, to: endIndex)
+    specificResult.text = try text.substring(from: startIndex, to: endIndex)
     
     for tag in nonSpecificResult.tags.keys {
         specificResult.tags[tag] = true
@@ -76,7 +76,7 @@ func mergeResult(text: String, specificResult: ParsedResult, nonSpecificResult: 
 }
 
 class ENPrioritizeSpecificDateRefiner: Refiner {
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         var results = results
         let resultsLength = results.count
         if resultsLength < 2 { return results }
@@ -90,18 +90,18 @@ class ENPrioritizeSpecificDateRefiner: Refiner {
             currentResult = results[i]
             previousResult = results[i-1]
             
-            if isMoreSpecific(previousResult: previousResult, currentResult: currentResult!) &&
+            if try isMoreSpecific(previousResult: previousResult, currentResult: currentResult!) &&
                 isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
                 
-                results[i] = mergeResult(text: text, specificResult: previousResult, nonSpecificResult: currentResult!)
+                results[i] = try mergeResult(text: text, specificResult: previousResult, nonSpecificResult: currentResult!)
                 currentResult = results[i]
                 
                 i += 1
                 continue
-            } else if isMoreSpecific(previousResult: currentResult!, currentResult: previousResult) &&
+            } else if try isMoreSpecific(previousResult: currentResult!, currentResult: previousResult) &&
                 isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
                 
-                results[i] = mergeResult(text: text, specificResult: currentResult!, nonSpecificResult: previousResult)
+                results[i] = try mergeResult(text: text, specificResult: currentResult!, nonSpecificResult: previousResult)
                 currentResult = results[i]
                 
                 i += 1
@@ -119,7 +119,6 @@ class ENPrioritizeSpecificDateRefiner: Refiner {
         return mergedResults
     }
 }
-
 
 
 

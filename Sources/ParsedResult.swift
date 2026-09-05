@@ -1,0 +1,50 @@
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
+import Foundation
+
+public struct ParsedResult {
+  public let ref: ChronoDate
+  /// UTF-16 offset into the original input, matching NSRegularExpression.
+  public var index: Int
+  public var text: String
+  public var tags: [TagUnit: Bool]
+  public var start: ParsedComponents
+  public var end: ParsedComponents?
+  let isMoveIndexMode: Bool
+
+  public init(
+    ref: ChronoDate, index: Int, text: String,
+    tags: [TagUnit: Bool] = [:],
+    start: [ComponentUnit: Int]? = nil,
+    end: [ComponentUnit: Int]? = nil
+  ) {
+    self.ref = ref
+    self.index = index
+    self.text = text
+    self.tags = tags
+    self.start = ParsedComponents(components: start, ref: ref)
+    self.end = end.map { ParsedComponents(components: $0, ref: ref) }
+    isMoveIndexMode = false
+  }
+
+  private init(ref: ChronoDate, advancingTo index: Int) {
+    self.ref = ref
+    self.index = index
+    text = ""
+    tags = [:]
+    start = ParsedComponents(components: nil, ref: ref)
+    end = nil
+    isMoveIndexMode = true
+  }
+
+  static func moveIndexMode(ref: ChronoDate, index: Int) -> ParsedResult {
+    ParsedResult(ref: ref, advancingTo: index)
+  }
+
+  func clone() -> ParsedResult { self }
+
+  func hasPossibleDates() -> Bool {
+    guard start.isPossibleDate() else { return false }
+    if let end { return end.isPossibleDate() }
+    return true
+  }
+}
