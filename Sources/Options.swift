@@ -90,6 +90,8 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         RUTimeExpressionParser(strictMode: strictMode),
 
     ], refiners: [
+        // Bind each endpoint's explicit offset before composing ranges.
+        ExtractTimezoneOffsetRefiner(),
         // Removing overlaping first
         OverlapRemovalRefiner(),
         ForwardDateRefiner(),
