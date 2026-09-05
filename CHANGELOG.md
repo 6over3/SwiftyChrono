@@ -6,6 +6,13 @@
 * Unify regex and source coordinates as UTF-16, including Unicode boundaries.
 * Propagate date/source errors and preserve month/year rollover in calendar-day shifts.
 * Split parsed values, date arithmetic, and component units into focused files.
+* Return unique, repeated, and invalid civil-time outcomes; retain full-source input issues.
+* Preserve clock precision and endpoint offsets when combining dates and times.
+* Keep written range order instead of silently swapping backwards endpoints.
+* Resolve ISO timestamps in the supplied zone unless an offset is explicit; fix negative
+  sub-hour offsets and fractional-second scaling, and report unsupported precision.
+* Require admitted grammar languages and refine their results independently; carry
+  typed grammar provenance through merging instead of inferring it from parser tags.
 * Production sources compile; inherited tests are not updated or executed in this patch.
 
 # 2.0.0

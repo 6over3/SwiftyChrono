@@ -9,6 +9,7 @@
 import Foundation
 
 class Refiner {
+    var language: Language { .neutral }
     public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         return results
     }

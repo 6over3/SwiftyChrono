@@ -77,9 +77,7 @@ class MergeDateTimeRefiner: Refiner {
         let beginTime = timeResult.start
         
         var beginDateTime = beginDate
-        beginDateTime.assign(.hour, value: beginTime[.hour])
-        beginDateTime.assign(.minute, value: beginTime[.minute])
-        beginDateTime.assign(.second, value: beginTime[.second])
+        beginDateTime.applyClock(from: beginTime)
         
         if beginTime.isCertain(component: .meridiem) {
             beginDateTime.assign(.meridiem, value: beginTime[.meridiem]!)
@@ -99,9 +97,7 @@ class MergeDateTimeRefiner: Refiner {
             let endTime = timeResult.end ?? timeResult.start
             
             var endDateTime = endDate
-            endDateTime.assign(.hour, value: endTime[.hour])
-            endDateTime.assign(.minute, value: endTime[.minute])
-            endDateTime.assign(.second, value: endTime[.second])
+            endDateTime.applyClock(from: endTime)
             
             if endTime.isCertain(component: .meridiem) {
                 endDateTime.assign(.meridiem, value: endTime[.meridiem]!)
@@ -109,7 +105,7 @@ class MergeDateTimeRefiner: Refiner {
                 endDateTime.imply(.meridiem, to: endTime[.meridiem])
             }
             
-            if try dateResult.end == nil && (endDateTime.date).timeIntervalSince1970 < (beginDateTime.date).timeIntervalSince1970 {
+            if dateResult.end == nil && endDateTime.isDefinitelyBefore(beginDateTime) {
                 // Ex. 9pm - 1am
                 try endDateTime.shiftCalendarDays(1)
             }
@@ -131,12 +127,12 @@ class MergeDateTimeRefiner: Refiner {
             dateResult.tags[tag] = true
         }
         dateResult.tags[TAGS] = true
+        dateResult.languages.formUnion(timeResult.languages)
+        dateResult.languages.insert(language)
+        dateResult.issues += timeResult.issues
         return dateResult
     }
 }
-
-
-
 
 
 

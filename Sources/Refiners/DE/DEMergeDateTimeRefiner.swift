@@ -9,6 +9,7 @@
 import Foundation
 
 class DEMergeDateTimeRefiner: MergeDateTimeRefiner {
+    override var language: Language { .german }
     override var PATTERN: String { return "^\\s*(T|vor|nach|um|,|-)?\\s*$" }
     override var TAGS: TagUnit { return .deMergeDateAndTimeRefiner }
 }

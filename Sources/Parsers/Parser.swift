@@ -22,14 +22,20 @@ public class Parser {
     {
       let result: ParsedResult?
       do { result = try extract(text: text, ref: ref, match: match, opt: opt) }
-      catch ChronoError.invalidDate { result = nil }
-      if let result {
+      catch ChronoError.invalidDate {
+        var rejected = ParsedResult(
+          ref: ref, index: match.range.location, text: try match.string(from: text, atRangeIndex: 0))
+        rejected.issues = [.invalidComponents]
+        result = rejected
+      }
+      if var result {
+        result.languages.insert(language)
         let end = result.index.addingReportingOverflow(result.text.utf16.count)
         guard !end.overflow, end.partialValue > offset, end.partialValue <= length,
           result.index >= offset
         else { throw ChronoError.invalidSourceRange }
         offset = end.partialValue
-        if !result.isMoveIndexMode, result.hasPossibleDates() { results.append(result) }
+        if !result.isMoveIndexMode { results.append(result) }
       } else {
         // Advance on a valid String boundary, never into a surrogate pair.
         guard let range = Range(match.range, in: text), range.lowerBound < text.endIndex

@@ -17,6 +17,7 @@ public struct Chrono {
     text: String,
     refDate: Date,
     calendar: Calendar,
+    languages: Set<Language>,
     opt: [OptionType: Int] = [:]
   ) throws -> [ParsedResult] {
     // These grammars describe civil Gregorian dates, not arbitrary era calendars.
@@ -24,14 +25,22 @@ public struct Chrono {
       refDate.timeIntervalSince1970.isFinite
     else { throw ChronoError.invalidCalendar }
     let reference = ChronoDate(instant: refDate, calendar: calendar)
-    var results: [ParsedResult] = []
-    for parser in modeOption.parsers {
-      results += try parser.execute(text: text, ref: reference, opt: opt)
+    var combined: [ParsedResult] = []
+    // Resolve each admitted grammar independently. Parser registration order
+    // must not discard another language's interpretation of the same date.
+    for language in Language.allCases where languages.contains(language) {
+      var results: [ParsedResult] = []
+      for parser in modeOption.parsers
+      where parser.language == language || parser.language == .neutral {
+        results += try parser.execute(text: text, ref: reference, opt: opt)
+      }
+      results.sort { $0.index < $1.index }
+      for refiner in modeOption.refiners
+      where refiner.language == .neutral || refiner.language == language {
+        results = try refiner.refine(text: text, results: results, opt: opt)
+      }
+      combined += results
     }
-    results.sort { $0.index < $1.index }
-    for refiner in modeOption.refiners {
-      results = try refiner.refine(text: text, results: results, opt: opt)
-    }
-    return results.filter { $0.hasPossibleDates() }
+    return combined
   }
 }
