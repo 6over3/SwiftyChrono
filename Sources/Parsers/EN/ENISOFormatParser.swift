@@ -40,13 +40,13 @@ private let tzdMinuteOffsetGroup = 10
 public class ENISOFormatParser: Parser {
     override var pattern: String { return PATTERN }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        result.start.assign(.year, value: Int(match.string(from: text, atRangeIndex: yearNumberGroup)))
-        result.start.assign(.month, value: Int(match.string(from: text, atRangeIndex: monthNumberGroup)))
-        result.start.assign(.day, value: Int(match.string(from: text, atRangeIndex: dayNumberGroup)))
+        result.start.assign(.year, value: Int(try match.string(from: text, atRangeIndex: yearNumberGroup)))
+        result.start.assign(.month, value: Int(try match.string(from: text, atRangeIndex: monthNumberGroup)))
+        result.start.assign(.day, value: Int(try match.string(from: text, atRangeIndex: dayNumberGroup)))
         
         guard let month = result.start[.month], let day = result.start[.day] else {
             return nil
@@ -57,20 +57,20 @@ public class ENISOFormatParser: Parser {
         }
         
         if match.isNotEmpty(atRangeIndex: hourNumberGroup) {
-            result.start.assign(.hour, value: Int(match.string(from: text, atRangeIndex: hourNumberGroup)))
-            result.start.assign(.minute, value: Int(match.string(from: text, atRangeIndex: minuteNumberGroup)))
+            result.start.assign(.hour, value: Int(try match.string(from: text, atRangeIndex: hourNumberGroup)))
+            result.start.assign(.minute, value: Int(try match.string(from: text, atRangeIndex: minuteNumberGroup)))
             
             if match.isNotEmpty(atRangeIndex: secondNumberGroup) {
-                result.start.assign(.second, value: Int(match.string(from: text, atRangeIndex: secondNumberGroup)))
+                result.start.assign(.second, value: Int(try match.string(from: text, atRangeIndex: secondNumberGroup)))
             }
             
             if match.isNotEmpty(atRangeIndex: millisecondNumberGroup) {
-                result.start.assign(.millisecond, value: Int(match.string(from: text, atRangeIndex: millisecondNumberGroup)))
+                result.start.assign(.millisecond, value: Int(try match.string(from: text, atRangeIndex: millisecondNumberGroup)))
             }
             
             if match.isNotEmpty(atRangeIndex: tzdHourOffsetGroup) {
-                let hourOffset = Int(match.string(from: text, atRangeIndex: tzdHourOffsetGroup)) ?? 0
-                let minuteOffset = match.isNotEmpty(atRangeIndex: tzdMinuteOffsetGroup) ? Int(match.string(from: text, atRangeIndex: tzdMinuteOffsetGroup)) ?? 0 : 0
+                let hourOffset = Int(try match.string(from: text, atRangeIndex: tzdHourOffsetGroup)) ?? 0
+                let minuteOffset = match.isNotEmpty(atRangeIndex: tzdMinuteOffsetGroup) ? Int(try match.string(from: text, atRangeIndex: tzdMinuteOffsetGroup)) ?? 0 : 0
                 
                 var offset = hourOffset * 60
                 offset = offset + (offset < 0 ? -minuteOffset : minuteOffset)

@@ -21,7 +21,7 @@ private let prefixGroup = 2
 private let weekdayGroup = 3
 private let postfixGroup = 4
 
-public func updateParsedComponent(result: ParsedResult, ref: Date, offset: Int, modifier: String) -> ParsedResult {
+public func updateParsedComponent(result: ParsedResult, ref: ChronoDate, offset: Int, modifier: String) throws -> ParsedResult {
     var result = result
     
     var startMoment = ref
@@ -48,7 +48,7 @@ public func updateParsedComponent(result: ParsedResult, ref: Date, offset: Int, 
         }
     }
     
-    startMoment = startMoment.setOrAdded(weekday, .weekday)
+    startMoment = try startMoment.setOrAdded(weekday, .weekday)
     
     result.start.assign(.weekday, value: offset)
     if startMomentFixed {
@@ -67,20 +67,20 @@ public func updateParsedComponent(result: ParsedResult, ref: Date, offset: Int, 
 public class ENWeekdayParser: Parser {
     override var pattern: String { return PATTERN }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        let dayOfWeek = match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
+        let dayOfWeek = try match.string(from: text, atRangeIndex: weekdayGroup).lowercased()
         guard let offset = EN_WEEKDAY_OFFSET[dayOfWeek] else {
             return nil
         }
         
-        let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? match.string(from: text, atRangeIndex: prefixGroup) : nil
-        let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? match.string(from: text, atRangeIndex: postfixGroup) : nil
+        let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
+        let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
         let norm = (prefix ?? postfix ?? "").lowercased()
         
-        result = updateParsedComponent(result: result, ref: ref, offset: offset, modifier: norm)
+        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: norm)
         result.tags[.enWeekdayParser] = true
         return result
     }

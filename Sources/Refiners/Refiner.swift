@@ -9,21 +9,21 @@
 import Foundation
 
 class Refiner {
-    public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         return results
     }
 }
 
 class Filter: Refiner {
-    public func isValid(text: String, result: ParsedResult, opt: [OptionType: Int]) -> Bool {
+    public func isValid(text: String, result: ParsedResult, opt: [OptionType: Int]) throws -> Bool {
         return true
     }
     
-    public override func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    public override func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         var filteredResults = [ParsedResult]()
         
         for r in results {
-            if isValid(text: text, result: r, opt: opt) {
+            if try isValid(text: text, result: r, opt: opt) {
                 filteredResults.append(r)
             }
         }

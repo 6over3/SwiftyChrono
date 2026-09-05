@@ -26,22 +26,23 @@ public class RUTimeAgoFormatParser: Parser {
     override var pattern: String { strictMode ? STRICT_PATTERN : PATTERN }
     override var language: Language { .russian }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         let idx = match.range(at: 0).location
-        if idx > 0 && NSRegularExpression.isMatch(forPattern: "\\w", in: text.substring(from: idx - 1, to: idx)) {
+        if let str = try text.character(beforeUTF16Offset: idx),
+            try NSRegularExpression.isMatch(forPattern: "\\w", in: str) {
             return nil
         }
         
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let number: Int
-        let numberText = match.string(from: text, atRangeIndex: 2).lowercased()
+        let numberText = try match.string(from: text, atRangeIndex: 2).lowercased()
         if let number0 = RU_INTEGER_WORDS[numberText] {
             number = number0
-        } else if NSRegularExpression.isMatch(forPattern: "несколько", in: numberText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "несколько", in: numberText) {
             number = 3
-        } else if NSRegularExpression.isMatch(forPattern: "пол", in: numberText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "пол", in: numberText) {
             number = HALF
         } else if let num = Int(numberText) {
             number = num
@@ -50,7 +51,7 @@ public class RUTimeAgoFormatParser: Parser {
         }
 
         var date = ref
-        let matchText3 = match.string(from: text, atRangeIndex: 3)
+        let matchText3 = try match.string(from: text, atRangeIndex: 3)
         func ymdResult() -> ParsedResult {
             result.start.imply(.day, to: date.day)
             result.start.imply(.month, to: date.month)
@@ -61,19 +62,19 @@ public class RUTimeAgoFormatParser: Parser {
             result.tags[.ruTimeAgoFormatParser] = true
             return result
         }
-        if NSRegularExpression.isMatch(forPattern: "час", in: matchText3) {
-            date = number != HALF ? date.added(-number, .hour) : date.added(-30, .minute)
+        if try NSRegularExpression.isMatch(forPattern: "час", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .hour) : try date.added(-30, .minute)
             return ymdResult()
-        } else if NSRegularExpression.isMatch(forPattern: "минут", in: matchText3) {
-            date = number != HALF ? date.added(-number, .minute) : date.added(-30, .second)
+        } else if try NSRegularExpression.isMatch(forPattern: "минут", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .minute) : try date.added(-30, .second)
             return ymdResult()
-        } else if NSRegularExpression.isMatch(forPattern: "секунд", in: matchText3) {
-            date = number != HALF ? date.added(-number, .second) : date.added(-HALF_SECOND_IN_MS, .nanosecond)
+        } else if try NSRegularExpression.isMatch(forPattern: "секунд", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .second) : try date.added(-HALF_SECOND_IN_MS, .nanosecond)
             return ymdResult()
         }
 
-        if NSRegularExpression.isMatch(forPattern: "недел", in: matchText3) {
-            date = number != HALF ? date.added(-number * 7, .day) : date.added(-3, .day).added(-12, .hour)
+        if try NSRegularExpression.isMatch(forPattern: "недел", in: matchText3) {
+            date = number != HALF ? try date.added(-number * 7, .day) : try date.added(-3, .day).added(-12, .hour)
 
             result.start.imply(.day, to: date.day)
             result.start.imply(.month, to: date.month)
@@ -81,12 +82,12 @@ public class RUTimeAgoFormatParser: Parser {
             result.start.imply(.weekday, to: date.weekday)
             result.tags[.ruTimeAgoFormatParser] = true
             return result
-        } else if NSRegularExpression.isMatch(forPattern: "дн", in: matchText3) {
-            date = number != HALF ? date.added(-number, .day) : date.added(-12, .hour)
-        } else if NSRegularExpression.isMatch(forPattern: "месяц", in: matchText3) {
-            date = number != HALF ? date.added(-number, .month) : date.added(-(date.numberOf(.day, inA: .month) ?? 30)/2, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "год|лет", in: matchText3) {
-            date = number != HALF ? date.added(-number, .year) : date.added(-6, .month)
+        } else if try NSRegularExpression.isMatch(forPattern: "дн", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .day) : try date.added(-12, .hour)
+        } else if try NSRegularExpression.isMatch(forPattern: "месяц", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .month) : try date.added(-(date.numberOf(.day, inA: .month) ?? 30)/2, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "год|лет", in: matchText3) {
+            date = number != HALF ? try date.added(-number, .year) : try date.added(-6, .month)
         }
         
         result.start.assign(.day, value: date.day)

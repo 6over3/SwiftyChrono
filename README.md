@@ -1,143 +1,70 @@
-## SwiftyChrono
+# SwiftyChrono — 6over3 fork
 
-A natural language date parser in Swift, designed to extract date information from any given text.
- 
-When we were [integrating Siri](https://quire.io/blog/p/Quire-Siri-Best-Task-Manager-Friend.html) with our [iOS app](https://itunes.apple.com/us/app/quire-task-manager-for-teams/id1095193897?mt=8), we found that JavascriptCore runtime is running on resource-limited extensions and will crash due to memory limitation. So, we created a Swift version. Thanks to Wanasit Tanakitrungruang's [chrono.js](https://github.com/wanasit/chrono).
+A deterministic natural-language date parser in Swift, derived from
+[quire-io/SwiftyChrono](https://github.com/quire-io/SwiftyChrono), itself a port of
+[chrono.js](https://github.com/wanasit/chrono). MIT license; see LICENSE.
 
-SwiftyChrono supports most date and time formats, such as:
-* Today, Tomorrow, Yesterday, Last Friday, etc
-* 17 August 2013 - 19 August 2013
-* This Friday from 13:00 - 16.00
-* 5 days ago
-* Sat Aug 17 2013 18:40:39 GMT+0900 (JST)
-* 2014-11-30T08:15:30-05:30
+## Explicit query context
 
-There are more available patterns. You can simply download it and try.
-
-### License
-
-MIT
-
-### Status
-
-This project is currently being used in the [Quire](https://quire.io) iOS app.
-
-### Requirements
-
-Swift 5.10+
-
-### Install
-
-#### Swift Package Manager
-
-In Xcode, choose **File → Add Package Dependencies…** and enter the repository URL:
-
-```
-https://github.com/quire-io/SwiftyChrono.git
-```
-
-Or add it to your `Package.swift`:
+This fork requires the caller to capture the reference instant and civil calendar.
+It never substitutes the process's current date, calendar, or time zone during
+parsing. The supplied calendar must be Gregorian; its time zone and week settings
+travel with every intermediate date and parsed component.
 
 ```swift
-dependencies: [
-    .package(url: "https://github.com/quire-io/SwiftyChrono.git", from: "2.0.0"),
-]
-```
-
-#### CocoaPods
-
-```ruby
-use_frameworks!
-
-target 'MyApp' do
-	pod 'SwiftyChrono'
-end
-```
-
-### Usage
-
-#### Initialization
-
-```swift
+import Foundation
 import SwiftyChrono
-let chrono = Chrono()
-```
-#### Parse
 
-```swift
-chrono.parse(text: "Bring a book tomorrow")
-// [
-// 	SwiftyChrono.ParsedResult(ref: 2017-02-22 08:33:33 +0000,
-// 	index: 13,
-// 	text: "tomorrow",
-// 	tags: [
-// 		SwiftyChrono.TagUnit.enCasualDateParser: true
-// 	],
-// 	start: SwiftyChrono.ParsedComponents(
-// 		knownValues: [
-// 			SwiftyChrono.ComponentUnit.day: 23,
-// 			SwiftyChrono.ComponentUnit.year: 2017,
-// 			SwiftyChrono.ComponentUnit.month: 2],
-// 		impliedValues: [
-// 			SwiftyChrono.ComponentUnit.minute: 0,
-// 			SwiftyChrono.ComponentUnit.second: 0,
-// 			SwiftyChrono.ComponentUnit.millisecond: 0,
-// 			SwiftyChrono.ComponentUnit.hour: 12
-// 		]),
-// 	end: nil,
-// 	isMoveIndexMode: false)
-// ]
-
-// refDate (1485921600000) is 2017/2/1 12:00:00.0000
-let refDate = Date(timeIntervalSince1970: 1485921600)
-// you can add a reference date
-chrono.parse(text: "Bring a book tomorrow", refDate: refDate)
+func parsedDates(
+    in text: String,
+    reference: Date,
+    calendar: Calendar
+) throws -> [Date] {
+    let parser = Chrono()
+    let results = try parser.parse(
+        text: text,
+        refDate: reference,
+        calendar: calendar
+    )
+    return try results.map { try $0.start.date.instant }
+}
 ```
 
-#### Quick Date Parse
+Use `Chrono(strict: true)` for the inherited strict grammar mode. The parser's
+language tags describe which grammars contributed to a result; callers must
+still decide which languages are admissible for their query. This fork does not
+provide general language understanding or equivalent date coverage in every language.
 
-```swift
-chrono.parseDate(text: "Bring a book tomorrow", refDate: refDate)
-// "Feb 2, 2017, 12:00 PM"
-```
+## Result and error contracts
 
-#### Other Options
+- `ParsedResult.index` is a UTF-16 offset into the original input, matching
+  `NSRegularExpression`. Convert it with `Range(NSRange(...), in: text)`;
+  do not interpret it as a Character or UTF-8 offset.
+- `ParsedComponents` retains known versus implied fields and the captured calendar.
+  A date-only expression uses a civil-noon anchor; callers can derive its calendar
+  interval from field certainty.
+- `try components.date` returns a `ChronoDate` containing both the instant and
+  its effective calendar. An explicitly parsed zone overrides the captured zone.
+- Invalid civil components and nonexistent wall times are not silently rolled
+  into a different date. Calendar-day shifts carry month/year rollover.
+- Source-coordinate and calendar errors throw instead of fabricating a reference
+  date or continuing with a different time zone.
+- Regex extraction and slicing use one UTF-16 coordinate contract, including
+  preceding-character checks at the beginning of input and beside emoji.
 
-```swift
-// options: .forwardDate - the match date is always later than refDate
-chrono.parseDate(text: "Bring a book on December 1", refDate: refDate)
-// "Dec 1, 2016, 12:00 PM"
-chrono.parseDate(text: "Bring a book on December 1", refDate: refDate, opt: [.forwardDate: 1])
-// "Dec 1, 2017, 12:00 PM"
+The previous global preferred-language/implied-time switches, static shared
+parser instances, and implicit-reference `parseDate` API are removed. Callers
+must use explicit context. There is no compatibility adapter.
 
-// you can assignee which hour in 
-// morning, afternoon, evening, noon
-chrono.parseDate(text: "Bring a book tomorrow morning", refDate: refDate, opt: [.morning: 10])
-// "Feb 2, 2017, 10:00 AM"
+## Dependency
 
-/// specify the preferred language will let the answer more acurate
-chrono.parse(text: "you can do it tomorrow", refDate: refDate).map{ $0.text }
-// ["do", "tomorrow"]
-Chrono.preferredLanguage = .english
-chrono.parse(text: "you can do it tomorrow", refDate: refDate).map{ $0.text }
-// ["tomorrow"]
+Use `https://github.com/6over3/SwiftyChrono.git` as a Swift package dependency and
+pin an exact reviewed revision. Do not vendor the source tree into the application.
 
+## Verification boundary
 
-/// specify sixMinutesFixBefore1900 to true, if the date before 1900 is in your use case
-Chrono.sixMinutesFixBefore1900 = true
-chrono.parseDate(text: "you can do it 1970/1/1")
-
-
-/// override defaut hour, minute, second, millisecond
-// the default implied hour is 12 pm if the given text doesn't specify
-Chrono.defaultImpliedHour = 1
-Chrono.defaultImpliedMinute = 1
-Chrono.defaultImpliedSecond = 1
-Chrono.defaultImpliedMillisecond = 1
-chrono.parseDate(text: "you can do it tomorrow", refDate: refDate)?.timeIntervalSince1970
-// 1485968461.001, 2017/2/1 01:01:01.001
-```
-
-### Demo Video
-
-[![Everything Is AWESOME](https://img.youtube.com/vi/f5PKHumpwsE/0.jpg)](https://www.youtube.com/watch?v=f5PKHumpwsE "Talk to Siri to Add Tasks")
+Production-source compilation is checked separately from runtime behavior. The
+inherited tests have not been updated to the explicit-context API or run as part
+of this patch. Temporal ambiguity (including repeated DST wall times), grammar
+coverage, and caller-specific interval composition require further validation;
+a successful build does not establish those behaviors.

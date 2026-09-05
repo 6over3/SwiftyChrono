@@ -15,7 +15,7 @@ private let timezoneOffsetHourOffset = 3
 private let timezoneOffsetMinuteOffsetGroup = 4
 
 class ExtractTimezoneOffsetRefiner: Refiner {
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         let resultsLength = results.count
         var newResults = [ParsedResult]()
         
@@ -29,21 +29,21 @@ class ExtractTimezoneOffsetRefiner: Refiner {
                 continue
             }
             
-            let substring = text.substring(from: result.index + result.text.count)
+            let substring = try text.substring(from: result.index + result.text.utf16.count)
             guard
                 let regex = (try? NSRegularExpression(pattern: PATTERN, options: .caseInsensitive)),
-                let match = regex.firstMatch(in: substring, range: NSRange(location: 0, length: substring.count))
+                let match = regex.firstMatch(in: substring, range: NSRange(location: 0, length: substring.utf16.count))
             else {
                 i += 1
                 newResults.append(result)
                 continue
             }
             
-            let hourOffset = Int(match.string(from: substring, atRangeIndex: timezoneOffsetHourOffset))!
-            let minuteOffset = Int(match.string(from: substring, atRangeIndex: timezoneOffsetMinuteOffsetGroup))!
+            let hourOffset = Int(try match.string(from: substring, atRangeIndex: timezoneOffsetHourOffset))!
+            let minuteOffset = Int(try match.string(from: substring, atRangeIndex: timezoneOffsetMinuteOffsetGroup))!
             var timezoneOffset = hourOffset * 60 + minuteOffset
             
-            if match.string(from: substring, atRangeIndex: timezoneOffsetSignGroup) == "-" {
+            if try match.string(from: substring, atRangeIndex: timezoneOffsetSignGroup) == "-" {
                 timezoneOffset = -timezoneOffset
             }
             
@@ -52,7 +52,7 @@ class ExtractTimezoneOffsetRefiner: Refiner {
             }
             
             result.start.assign(.timeZoneOffset, value: timezoneOffset)
-            result.text += match.string(from: substring, atRangeIndex: 0)
+            result.text += try match.string(from: substring, atRangeIndex: 0)
             result.tags[.extractTimezoneOffsetRefiner] = true
             
             i += 1

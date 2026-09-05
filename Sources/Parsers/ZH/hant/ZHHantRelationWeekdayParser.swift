@@ -21,17 +21,17 @@ public class ZHHantRelationWeekdayParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .chinese }
 
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndexForCHHant(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
 
-        let dayOfWeek = match.string(from: text, atRangeIndex: weekdayGroup)
+        let dayOfWeek = try match.string(from: text, atRangeIndex: weekdayGroup)
         guard let offset = ZH_WEEKDAY_OFFSET[dayOfWeek] else {
             return nil
         }
 
         var modifier = ""
-        let prefix = match.string(from: text, atRangeIndex: prefixGroup)
+        let prefix = try match.string(from: text, atRangeIndex: prefixGroup)
 
         if prefix == "上" {
             modifier = "last"
@@ -41,7 +41,7 @@ public class ZHHantRelationWeekdayParser: Parser {
             modifier = "this"
         }
 
-        result = updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
+        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
         result.tags[.zhHantRelationWeekdayParser] = true
         return result
     }

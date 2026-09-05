@@ -12,7 +12,7 @@ class MergeDateRangeRefiner: Refiner {
     var PATTERN: String { return "" }
     var TAGS: TagUnit { return .none }
     
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         var results = results
         let resultsLength = results.count
         if resultsLength < 2 { return results }
@@ -26,10 +26,10 @@ class MergeDateRangeRefiner: Refiner {
             currentResult = results[i]
             previousResult = results[i-1]
             
-            if previousResult.end == nil && currentResult!.end == nil &&
+            if try previousResult.end == nil && currentResult!.end == nil &&
                 isAbleToMerge(text: text, result1: previousResult, result2: currentResult!) {
                 
-                results[i] = mergeResult(refText: text, fromResult: previousResult, toResult: currentResult!)
+                results[i] = try mergeResult(refText: text, fromResult: previousResult, toResult: currentResult!)
                 currentResult = results[i]
                 
                 i += 1
@@ -47,18 +47,18 @@ class MergeDateRangeRefiner: Refiner {
         return mergedResults
     }
     
-    private func isAbleToMerge(text: String, result1: ParsedResult, result2: ParsedResult) -> Bool {
-        let (startIndex, endIndex) = sortTwoNumbers(result1.index + result1.text.count, result2.index)
-        let textBetween = text.substring(from: startIndex, to: endIndex)
+    private func isAbleToMerge(text: String, result1: ParsedResult, result2: ParsedResult) throws -> Bool {
+        let (startIndex, endIndex) = sortTwoNumbers(result1.index + result1.text.utf16.count, result2.index)
+        let textBetween = try text.substring(from: startIndex, to: endIndex)
         
-        return NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween)
+        return try NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween)
     }
     
     private func isWeekdayResult(result: ParsedResult) -> Bool {
         return result.start.isCertain(component: .weekday) && !result.start.isCertain(component: .day)
     }
     
-    private func mergeResult(refText text: String, fromResult: ParsedResult, toResult: ParsedResult) -> ParsedResult {
+    private func mergeResult(refText text: String, fromResult: ParsedResult, toResult: ParsedResult) throws -> ParsedResult {
         var fromResult = fromResult
         var toResult = toResult
         
@@ -76,7 +76,7 @@ class MergeDateRangeRefiner: Refiner {
             }
         }
         
-        if fromResult.start.date.timeIntervalSince1970 > toResult.start.date.timeIntervalSince1970 {
+        if try (fromResult.start.date).timeIntervalSince1970 > (toResult.start.date).timeIntervalSince1970 {
             let tmp = toResult
             toResult = fromResult
             fromResult = tmp
@@ -90,17 +90,16 @@ class MergeDateRangeRefiner: Refiner {
         
         let startIndex = min(fromResult.index, toResult.index)
         let endIndex = max(
-            fromResult.index + fromResult.text.count,
-            toResult.index + toResult.text.count)
+            fromResult.index + fromResult.text.utf16.count,
+            toResult.index + toResult.text.utf16.count)
         
         fromResult.index = startIndex
-        fromResult.text = text.substring(from: startIndex, to: endIndex)
+        fromResult.text = try text.substring(from: startIndex, to: endIndex)
         fromResult.tags[TAGS] = true
         
         return fromResult
     }
 }
-
 
 
 

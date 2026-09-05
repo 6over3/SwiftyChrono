@@ -30,34 +30,34 @@ public class CACasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .catalan }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
         var startMoment = refMoment
         let regex = try! NSRegularExpression(pattern: "\\s+")
-        let lowerText = regex.stringByReplacingMatches(in: matchText.lowercased(), range: NSRange(location: 0, length: matchText.count), withTemplate: " ")
+        let lowerText = regex.stringByReplacingMatches(in: matchText.lowercased(), range: NSRange(location: 0, length: matchText.utf16.count), withTemplate: " ")
         
         if lowerText == "demà" {
             // Check not "Tomorrow" on late night
             if ref.hour > 1 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
             
         } else if lowerText == "ahir" {
             
-            startMoment = startMoment.added(-1, .day)
+            startMoment = try startMoment.added(-1, .day)
             
-        } else if NSRegularExpression.isMatch(forPattern: "ahir\\s+a\\s+la\\s+nit", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "ahir\\s+a\\s+la\\s+nit", in: lowerText) {
             result.start.imply(.hour, to: 0)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
 
-        } else if NSRegularExpression.isMatch(forPattern: "aquest", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "aquest", in: lowerText) {
             
-            let secondMatch = match.string(from: text, atRangeIndex: 3).lowercased()
+            let secondMatch = try match.string(from: text, atRangeIndex: 3).lowercased()
             if secondMatch == "tarda" {
                 result.start.imply(.hour, to: 18)
                 
@@ -72,18 +72,18 @@ public class CACasualDateParser: Parser {
                 
             }
         
-        } else if NSRegularExpression.isMatch(forPattern: "(?:per\\s*la|pel)", in: lowerText) {
-            let firstMatch = match.string(from: text, atRangeIndex: 4).lowercased()
+        } else if try NSRegularExpression.isMatch(forPattern: "(?:per\\s*la|pel)", in: lowerText) {
+            let firstMatch = try match.string(from: text, atRangeIndex: 4).lowercased()
             if firstMatch == "ahir" {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
                 
             } else if firstMatch == "demà" {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
                 
             }
             
             
-            let secondMatch = match.string(from: text, atRangeIndex: 5).lowercased()
+            let secondMatch = try match.string(from: text, atRangeIndex: 5).lowercased()
             if secondMatch == "tarda" {
                 result.start.imply(.hour, to: 18)
                 
@@ -98,7 +98,7 @@ public class CACasualDateParser: Parser {
                 
             }
             
-        } else if NSRegularExpression.isMatch(forPattern: "ara", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "ara", in: lowerText) {
             
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)

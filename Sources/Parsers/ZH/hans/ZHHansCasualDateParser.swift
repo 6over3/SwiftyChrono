@@ -28,8 +28,8 @@ public class ZHHansCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .chineseSimplified }
 
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndexForCHHant(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndexForCHHant(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
 
         let refMoment = ref
@@ -41,24 +41,24 @@ public class ZHHansCasualDateParser: Parser {
             result.start.imply(.second, to: refMoment.second)
             result.start.imply(.millisecond, to: refMoment.millisecond)
         } else if match.isNotEmpty(atRangeIndex: dayGroup1) {
-            let day1 = match.string(from: text, atRangeIndex: dayGroup1)
-            let time1 = match.string(from: text, atRangeIndex: timeGroup1)
+            let day1 = try match.string(from: text, atRangeIndex: dayGroup1)
+            let time1 = try match.string(from: text, atRangeIndex: timeGroup1)
 
             if day1 == "明" {
                 // Check not "Tomorrow" on late night
                 if refMoment.hour > 1 {
-                    startMoment = startMoment.added(1, .day)
+                    startMoment = try startMoment.added(1, .day)
                 }
             } else if day1 == "昨" {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             } else if day1 == "前" {
-                startMoment = startMoment.added(-2, .day)
+                startMoment = try startMoment.added(-2, .day)
             } else if day1 == "大前" {
-                startMoment = startMoment.added(-3, .day)
+                startMoment = try startMoment.added(-3, .day)
             } else if day1 == "后" {
-                startMoment = startMoment.added(2, .day)
+                startMoment = try startMoment.added(2, .day)
             } else if day1 == "大后" {
-                startMoment = startMoment.added(3, .day)
+                startMoment = try startMoment.added(3, .day)
             }
 
             if time1 == "早" {
@@ -69,7 +69,7 @@ public class ZHHansCasualDateParser: Parser {
             }
 
         } else if match.isNotEmpty(atRangeIndex: timeGroup2) {
-            let timeString2 = match.string(from: text, atRangeIndex: timeGroup2)
+            let timeString2 = try match.string(from: text, atRangeIndex: timeGroup2)
             let time2 = timeString2.firstString ?? ""
 
             if time2 == "早" || time2 == "上" {
@@ -88,27 +88,27 @@ public class ZHHansCasualDateParser: Parser {
             }
 
         } else if match.isNotEmpty(atRangeIndex: dayGroup3) {
-            let day3 = match.string(from: text, atRangeIndex: dayGroup3)
+            let day3 = try match.string(from: text, atRangeIndex: dayGroup3)
 
             if day3 == "明" {
                 // Check not "Tomorrow" on late night
                 if refMoment.hour > 1 {
-                    startMoment = startMoment.added(1, .day)
+                    startMoment = try startMoment.added(1, .day)
                 }
             } else if day3 == "昨" {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             } else if day3 == "前" {
-                startMoment = startMoment.added(-2, .day)
+                startMoment = try startMoment.added(-2, .day)
             } else if day3 == "大前" {
-                startMoment = startMoment.added(-3, .day)
+                startMoment = try startMoment.added(-3, .day)
             } else if day3 == "后" {
-                startMoment = startMoment.added(2, .day)
+                startMoment = try startMoment.added(2, .day)
             } else if day3 == "大后" {
-                startMoment = startMoment.added(3, .day)
+                startMoment = try startMoment.added(3, .day)
             }
 
             if match.isNotEmpty(atRangeIndex: timeGroup3) {
-                let timeString3 = match.string(from: text, atRangeIndex: timeGroup3)
+                let timeString3 = try match.string(from: text, atRangeIndex: timeGroup3)
                 let time3 = timeString3.firstString ?? ""
 
                 if time3 == "早" || time3 == "上" {

@@ -124,10 +124,10 @@ let RU_ORDINAL_WORDS_PATTERN = "(?:\(RU_ORDINAL_WORDS.keys.joined(separator: "|"
 /// `RU_ORDINAL_WORDS` keys are regex fragments (e.g. `"перв(?:ое|ый|го)"`), not literal
 /// words, so a plain dictionary subscript can never look one up. Match each pattern
 /// against the whole (lowercased) text instead.
-func ruOrdinalValue(of text: String) -> Int? {
+func ruOrdinalValue(of text: String) throws -> Int? {
     let lower = text.lowercased()
     for (pattern, value) in RU_ORDINAL_WORDS
-    where NSRegularExpression.isMatch(
+    where try NSRegularExpression.isMatch(
         forPattern: "^" + pattern.replacingOccurrences(of: " ", with: "[ -]") + "$",
         in: lower) {
         return value

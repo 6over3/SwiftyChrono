@@ -15,12 +15,12 @@ public class RUCasualTimeParser: Parser {
     override var pattern: String { PATTERN }
     override var language: Language { .russian }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         if match.isNotEmpty(atRangeIndex: timeMatch) {
-            let time = match.string(from: text, atRangeIndex: timeMatch)
+            let time = try match.string(from: text, atRangeIndex: timeMatch)
             switch time {
             case "обед":
                 result.start.imply(.hour, to: opt[.afternoon] ?? 15)

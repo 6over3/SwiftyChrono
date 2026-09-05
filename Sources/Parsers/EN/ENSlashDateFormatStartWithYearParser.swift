@@ -9,7 +9,7 @@
 import Foundation
 
 /*
- Date format with slash "/" between numbers like ENSlashDateFormatParser,
+ ChronoDate format with slash "/" between numbers like ENSlashDateFormatParser,
  but this parser expect year before month and date.
  - YYYY/MM/DD
  - YYYY-MM-DD
@@ -27,14 +27,14 @@ private let dateNumberGroup = 4
 public class ENSlashDateFormatStartWithYearParser: Parser {
     override var pattern: String { return PATTERN }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        result.start.assign(.year, value: Int(match.string(from: text, atRangeIndex: yearNumberGroup)))
-        result.start.assign(.month, value: Int(match.string(from: text, atRangeIndex: monthNumberGroup)))
-        result.start.assign(.day, value: Int(match.string(from: text, atRangeIndex: dateNumberGroup)))
+        result.start.assign(.year, value: Int(try match.string(from: text, atRangeIndex: yearNumberGroup)))
+        result.start.assign(.month, value: Int(try match.string(from: text, atRangeIndex: monthNumberGroup)))
+        result.start.assign(.day, value: Int(try match.string(from: text, atRangeIndex: dateNumberGroup)))
         
         guard let month = result.start[.month], let day = result.start[.day] else {
             return nil

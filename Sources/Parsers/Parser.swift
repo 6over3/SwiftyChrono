@@ -1,78 +1,57 @@
-//
-//  Parser.swift
-//  SwiftyChrono
-//
-//  Created by Jerry Chen on 1/18/17.
-//  Copyright © 2017 Potix. All rights reserved.
-//
-
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
 public class Parser {
-    let strictMode: Bool
-    var pattern: String { return "" }
-    var language: Language { return .english }
-    
-    public init(strictMode: Bool) {
-        self.strictMode = strictMode
+  let strictMode: Bool
+  var pattern: String { "" }
+  var language: Language { .english }
+
+  public init(strictMode: Bool) { self.strictMode = strictMode }
+
+  public func extract(
+    text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]
+  ) throws -> ParsedResult? { nil }
+
+  public func execute(text: String, ref: ChronoDate, opt: [OptionType: Int]) throws -> [ParsedResult] {
+    let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
+    var results: [ParsedResult] = []
+    let length = text.utf16.count
+    var offset = 0
+    while offset < length,
+      let match = regex.firstMatch(in: text, range: NSRange(location: offset, length: length - offset))
+    {
+      let result: ParsedResult?
+      do { result = try extract(text: text, ref: ref, match: match, opt: opt) }
+      catch ChronoError.invalidDate { result = nil }
+      if let result {
+        let end = result.index.addingReportingOverflow(result.text.utf16.count)
+        guard !end.overflow, end.partialValue > offset, end.partialValue <= length,
+          result.index >= offset
+        else { throw ChronoError.invalidSourceRange }
+        offset = end.partialValue
+        if !result.isMoveIndexMode, result.hasPossibleDates() { results.append(result) }
+      } else {
+        // Advance on a valid String boundary, never into a surrogate pair.
+        guard let range = Range(match.range, in: text), range.lowerBound < text.endIndex
+        else { throw ChronoError.invalidSourceRange }
+        let next = text.index(after: range.lowerBound)
+        offset = next.utf16Offset(in: text)
+      }
     }
-    
-    public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        return nil
-    }
-    
-    public func execute(text: String, ref: Date, opt: [OptionType: Int]) -> [ParsedResult] {
-        var results = [ParsedResult]()
-        
-        let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive)
-        
-        var startIndex = 0
-        var remainingText = text
-        var match = regex?.firstMatch(in: text, range: NSRange(location: startIndex, length: remainingText.count))
-        
-        while let existingMatch = match {
-            let result = extract(text: text, ref: ref, match: existingMatch, opt: opt)
-            if let result = result {
-                if !result.isMoveIndexMode { // extraction is success, normal mode
-                    // If success, start from the end of the result
-                    startIndex = result.index + result.text.count
-                    remainingText = String(text[text.index(text.startIndex, offsetBy: startIndex)...])
-                    
-                    if !strictMode || result.hasPossibleDates() {
-                        results.append(result)
-                    }
-                } else { // extraction is failure, skip this extraction and move on to specific index
-                    startIndex = result.index
-                    remainingText = text.substring(from: startIndex)
-                }
-            } else { // extraction is failure
-                // If fail, move on by 1
-                let location = existingMatch.range.location + 1
-                remainingText = String(text[text.index(text.startIndex, offsetBy: location)...])
-                startIndex = location
-            }
-            
-            let remainingTextLength = remainingText.count
-            
-            match = remainingTextLength > 0 ?
-                regex?.firstMatch(in: text, range: NSRange(location: startIndex, length: remainingTextLength)) : nil
-        }
-        
-        return results
-    }
-    
-    final func matchTextAndIndex(from text: String, andMatchResult matchResult: NSTextCheckingResult) -> (matchText: String, index: Int) {
-        let index1Length = matchResult.range(at: 1).length
-        let matchText = matchResult.string(from: text, atRangeIndex: 0).substring(from: index1Length)
-        let index = matchResult.range(at: 0).location + index1Length
-        
-        return (matchText, index)
-    }
-    
-    final func matchTextAndIndexForCHHant(from text: String, andMatchResult matchResult: NSTextCheckingResult) -> (matchText: String, index: Int) {
-        let matchText = matchResult.string(from: text, atRangeIndex: 0)
-        let index = matchResult.range(at: 0).location
-        
-        return (matchText, index)
-    }
+    return results
+  }
+
+  final func matchTextAndIndex(
+    from text: String, andMatchResult match: NSTextCheckingResult
+  ) throws -> (matchText: String, index: Int) {
+    let leadingLength = match.range(at: 1).length
+    let value = try match.string(from: text, atRangeIndex: 0).substring(from: leadingLength)
+    return (value, match.range.location + leadingLength)
+  }
+
+  final func matchTextAndIndexForCHHant(
+    from text: String, andMatchResult match: NSTextCheckingResult
+  ) throws -> (matchText: String, index: Int) {
+    (try match.string(from: text, atRangeIndex: 0), match.range.location)
+  }
 }

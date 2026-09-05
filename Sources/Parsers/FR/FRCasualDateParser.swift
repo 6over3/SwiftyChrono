@@ -14,8 +14,8 @@ public class FRCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .french }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
@@ -24,33 +24,33 @@ public class FRCasualDateParser: Parser {
         
         
             
-        if NSRegularExpression.isMatch(forPattern: "demain", in: lowerText) {
+        if try NSRegularExpression.isMatch(forPattern: "demain", in: lowerText) {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 1 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
         }
         
-        if NSRegularExpression.isMatch(forPattern: "hier", in: lowerText) {
-            startMoment = startMoment.added(-1, .day)
+        if try NSRegularExpression.isMatch(forPattern: "hier", in: lowerText) {
+            startMoment = try startMoment.added(-1, .day)
         }
         
-        if NSRegularExpression.isMatch(forPattern: "cette\\s*nuit", in: lowerText) {
+        if try NSRegularExpression.isMatch(forPattern: "cette\\s*nuit", in: lowerText) {
             // Normally means this coming midnight
             result.start.imply(.hour, to: 22)
             result.start.imply(.meridiem, to: 1)
-        } else if NSRegularExpression.isMatch(forPattern: "la\\s*veille", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "la\\s*veille", in: lowerText) {
             result.start.imply(.hour, to: 0)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "(après-midi|aprem)", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "(après-midi|aprem)", in: lowerText) {
             result.start.imply(.hour, to: 14)
-        } else if NSRegularExpression.isMatch(forPattern: "(soir)", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "(soir)", in: lowerText) {
             result.start.imply(.hour, to: 18)
-        } else if NSRegularExpression.isMatch(forPattern: "matin", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "matin", in: lowerText) {
             result.start.imply(.hour, to: 8)
-        } else if NSRegularExpression.isMatch(forPattern: "maintenant", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "maintenant", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)
             result.start.imply(.second, to: refMoment.second)
@@ -64,4 +64,3 @@ public class FRCasualDateParser: Parser {
         return result
     }
 }
-

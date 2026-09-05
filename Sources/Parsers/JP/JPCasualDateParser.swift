@@ -14,9 +14,9 @@ public class JPCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
     override var language: Language { return .japanese }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         let index = match.range(at: 0).location
-        let matchText = match.string(from: text, atRangeIndex: 0)
+        let matchText = try match.string(from: text, atRangeIndex: 0)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
@@ -30,11 +30,11 @@ public class JPCasualDateParser: Parser {
         } else if matchText == "明日" {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 4 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
         } else if matchText == "昨日" {
-            startMoment = startMoment.added(-1, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "今朝", in: matchText) {
+            startMoment = try startMoment.added(-1, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "今朝", in: matchText) {
             result.start.imply(.hour, to: 6)
             result.start.imply(.meridiem, to: 0)
         }
@@ -46,4 +46,3 @@ public class JPCasualDateParser: Parser {
         return result
     }
 }
-

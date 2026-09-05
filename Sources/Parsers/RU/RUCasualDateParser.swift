@@ -13,8 +13,8 @@ public class RUCasualDateParser: Parser {
     override var pattern: String { PATTERN }
     override var language: Language { .russian }
     
-    override public func extract(text: String, ref: Date, match: NSTextCheckingResult, opt: [OptionType: Int]) -> ParsedResult? {
-        let (matchText, index) = matchTextAndIndex(from: text, andMatchResult: match)
+    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
+        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
         let refMoment = ref
@@ -26,31 +26,31 @@ public class RUCasualDateParser: Parser {
             result.start.imply(.hour, to: 22)
             result.start.imply(.meridiem, to: 1)
             
-        } else if NSRegularExpression.isMatch(forPattern: "^завтра", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^завтра", in: lowerText) {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 1 {
-                startMoment = startMoment.added(1, .day)
+                startMoment = try startMoment.added(1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "^послезавтра", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^послезавтра", in: lowerText) {
             // Check not "Tomorrow" on late night
             if refMoment.hour > 1 {
-                startMoment = startMoment.added(2, .day)
+                startMoment = try startMoment.added(2, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "^вчера", in: lowerText) {
-            startMoment = startMoment.added(-1, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "^позавчера", in: lowerText) {
-            startMoment = startMoment.added(-2, .day)
-        } else if NSRegularExpression.isMatch(forPattern: "прошлой\\s*ночью", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "^вчера", in: lowerText) {
+            startMoment = try startMoment.added(-1, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "^позавчера", in: lowerText) {
+            startMoment = try startMoment.added(-2, .day)
+        } else if try NSRegularExpression.isMatch(forPattern: "прошлой\\s*ночью", in: lowerText) {
             result.start.imply(.hour, to: 0)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "прошлым\\s*вечером", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "прошлым\\s*вечером", in: lowerText) {
             result.start.imply(.hour, to: 15)
             if refMoment.hour > 6 {
-                startMoment = startMoment.added(-1, .day)
+                startMoment = try startMoment.added(-1, .day)
             }
-        } else if NSRegularExpression.isMatch(forPattern: "сейчас", in: lowerText) {
+        } else if try NSRegularExpression.isMatch(forPattern: "сейчас", in: lowerText) {
             result.start.imply(.hour, to: refMoment.hour)
             result.start.imply(.minute, to: refMoment.minute)
             result.start.imply(.second, to: refMoment.second)

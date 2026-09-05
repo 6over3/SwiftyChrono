@@ -18,14 +18,14 @@ private func isTimeOnly(result: ParsedResult) -> Bool {
     return !result.start.isCertain(component: .month) && !result.start.isCertain(component: .weekday)
 }
 
-private func isAbleToMerge(text: String, previousResult: ParsedResult, currentResult: ParsedResult) -> Bool {
-    let (startIndex, endIndex) = sortTwoNumbers(previousResult.index + previousResult.text.count, currentResult.index)
+private func isAbleToMerge(text: String, previousResult: ParsedResult, currentResult: ParsedResult) throws -> Bool {
+    let (startIndex, endIndex) = sortTwoNumbers(previousResult.index + previousResult.text.utf16.count, currentResult.index)
     
-    let textBetween = text.substring(from: startIndex, to: endIndex)
-    return NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween)
+    let textBetween = try text.substring(from: startIndex, to: endIndex)
+    return try NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween)
 }
 
-private func mergeResult(refText text: String, dateResult: ParsedResult, timeResult: ParsedResult) -> ParsedResult {
+private func mergeResult(refText text: String, dateResult: ParsedResult, timeResult: ParsedResult) throws -> ParsedResult {
     var dateResult = dateResult
     let beginDate = dateResult.start
     let beginTime = timeResult.start
@@ -63,13 +63,9 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
             endDateTime.imply(.meridiem, to: endTime[.meridiem])
         }
         
-        if dateResult.end == nil && endDateTime.date.timeIntervalSince1970 < beginDateTime.date.timeIntervalSince1970 {
+        if try dateResult.end == nil && (endDateTime.date).timeIntervalSince1970 < (beginDateTime.date).timeIntervalSince1970 {
             // Ex. 9pm - 1am
-            if endDateTime.isCertain(component: .day) {
-                endDateTime.assign(.day, value: endDateTime[.day]! + 1)
-            } else if let day = endDateTime[.day] {
-                endDateTime.imply(.day, to: day + 1)
-            }
+            try endDateTime.shiftCalendarDays(1)
         }
         
         dateResult.end = endDateTime
@@ -79,11 +75,11 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
     
     let startIndex = min(dateResult.index, timeResult.index)
     let endIndex = max(
-        dateResult.index + dateResult.text.count,
-        timeResult.index + timeResult.text.count)
+        dateResult.index + dateResult.text.utf16.count,
+        timeResult.index + timeResult.text.utf16.count)
     
     dateResult.index = startIndex
-    dateResult.text = String(text[text.range(ofStartIndex: startIndex, andEndIndex: endIndex)])
+    dateResult.text = String(text[try text.range(ofStartIndex: startIndex, andEndIndex: endIndex)])
     
     for tag in timeResult.tags.keys {
         dateResult.tags[tag] = true
@@ -93,7 +89,7 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
 }
 
 class FRMergeDateTimeRefiner: Refiner {
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) -> [ParsedResult] {
+    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         let resultsLength = results.count
         if resultsLength < 2 { return results }
         
@@ -107,16 +103,16 @@ class FRMergeDateTimeRefiner: Refiner {
             currentResult = results[i]
             previousResult = results[i-1]
             
-            if isDateOnly(result: previousResult) && isTimeOnly(result: currentResult!) &&
+            if try isDateOnly(result: previousResult) && isTimeOnly(result: currentResult!) &&
                 isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
                 
-                previousResult = mergeResult(refText: text, dateResult: previousResult, timeResult: currentResult!)
+                previousResult = try mergeResult(refText: text, dateResult: previousResult, timeResult: currentResult!)
                 currentResult = nil
                 i += 1
-            } else if isDateOnly(result: currentResult!) && isTimeOnly(result: previousResult) &&
+            } else if try isDateOnly(result: currentResult!) && isTimeOnly(result: previousResult) &&
                 isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
                 
-                previousResult = mergeResult(refText: text, dateResult: currentResult!, timeResult: previousResult)
+                previousResult = try mergeResult(refText: text, dateResult: currentResult!, timeResult: previousResult)
                 currentResult = nil
                 i += 1
             }
@@ -132,8 +128,6 @@ class FRMergeDateTimeRefiner: Refiner {
         return mergedResults
     }
 }
-
-
 
 
 
