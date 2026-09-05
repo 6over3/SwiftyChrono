@@ -9,5 +9,6 @@
 import Foundation
 
 class JPMergeDateRangeRefiner: ENMergeDateRangeRefiner {
+    override var language: Language { .japanese }
     override var PATTERN: String { return "^\\s*(から|ー)\\s*$" }
 }

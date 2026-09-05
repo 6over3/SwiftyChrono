@@ -31,9 +31,7 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
     let beginTime = timeResult.start
     
     var beginDateTime = beginDate
-    beginDateTime.assign(.hour, value: beginTime[.hour])
-    beginDateTime.assign(.minute, value: beginTime[.minute])
-    beginDateTime.assign(.second, value: beginTime[.second])
+    beginDateTime.applyClock(from: beginTime)
     
     if beginTime.isCertain(component: .meridiem) {
         beginDateTime.assign(.meridiem, value: beginTime[.meridiem]!)
@@ -53,9 +51,7 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
         let endTime = timeResult.end ?? timeResult.start
         
         var endDateTime = endDate
-        endDateTime.assign(.hour, value: endTime[.hour])
-        endDateTime.assign(.minute, value: endTime[.minute])
-        endDateTime.assign(.second, value: endTime[.second])
+        endDateTime.applyClock(from: endTime)
         
         if endTime.isCertain(component: .meridiem) {
             endDateTime.assign(.meridiem, value: endTime[.meridiem]!)
@@ -63,7 +59,7 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
             endDateTime.imply(.meridiem, to: endTime[.meridiem])
         }
         
-        if try dateResult.end == nil && (endDateTime.date).timeIntervalSince1970 < (beginDateTime.date).timeIntervalSince1970 {
+        if dateResult.end == nil && endDateTime.isDefinitelyBefore(beginDateTime) {
             // Ex. 9pm - 1am
             try endDateTime.shiftCalendarDays(1)
         }
@@ -85,10 +81,14 @@ private func mergeResult(refText text: String, dateResult: ParsedResult, timeRes
         dateResult.tags[tag] = true
     }
     dateResult.tags[.frMergeDateAndTimeRefiner] = true
+    dateResult.languages.formUnion(timeResult.languages)
+    dateResult.languages.insert(.french)
+    dateResult.issues += timeResult.issues
     return dateResult
 }
 
 class FRMergeDateTimeRefiner: Refiner {
+    override var language: Language { .french }
     override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         let resultsLength = results.count
         if resultsLength < 2 { return results }
@@ -128,9 +128,6 @@ class FRMergeDateTimeRefiner: Refiner {
         return mergedResults
     }
 }
-
-
-
 
 
 

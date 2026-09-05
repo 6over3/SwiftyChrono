@@ -451,7 +451,7 @@ public class ZHHantTimeExpressionParser: Parser {
             }
         }
 
-        if try (result.end!.date).timeIntervalSince1970 < (result.start.date).timeIntervalSince1970 {
+        if result.end!.isDefinitelyBefore(result.start) {
             try result.end!.shiftCalendarDays(1)
         }
 

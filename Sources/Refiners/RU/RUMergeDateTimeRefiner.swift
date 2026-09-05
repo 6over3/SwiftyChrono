@@ -8,6 +8,7 @@
 import Foundation
 
 class RUMergeDateTimeRefiner: MergeDateTimeRefiner {
+    override var language: Language { .russian }
     override var PATTERN: String { "^\\s*(T|в|после|до|по|с|,|-)?\\s*$" }
     override var TAGS: TagUnit { .ruMergeDateAndTimeRefiner }
 }

@@ -7,6 +7,10 @@ public struct ParsedResult {
   public var index: Int
   public var text: String
   public var tags: [TagUnit: Bool]
+  /// The grammars that actually contributed to the expression, including ISO syntax.
+  public var languages: Set<Language> = []
+  /// Recognized input that cannot be represented, retained rather than partially applied.
+  public var issues: [ParsedDateIssue] = []
   public var start: ParsedComponents
   public var end: ParsedComponents?
   let isMoveIndexMode: Bool
@@ -42,9 +46,4 @@ public struct ParsedResult {
 
   func clone() -> ParsedResult { self }
 
-  func hasPossibleDates() -> Bool {
-    guard start.isPossibleDate() else { return false }
-    if let end { return end.isPossibleDate() }
-    return true
-  }
 }

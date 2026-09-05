@@ -22,11 +22,11 @@ class ForwardDateRefiner: Refiner {
             var result = results[i]
             var refMoment = result.ref
             
-            if try result.start.isCertain(component: .day) && result.start.isCertain(component: .month) &&
-                !result.start.isCertain(component: .year) && refMoment.isAfter((try result.start.date)) {
+            if result.start.isCertain(component: .day) && result.start.isCertain(component: .month) &&
+                !result.start.isCertain(component: .year) && result.start.isDefinitelyBefore(refMoment.instant) {
                 // Adjust year into the future
                 for _ in 0..<3 {
-                    if try !refMoment.isAfter((result.start.date)) {
+                    if !result.start.isDefinitelyBefore(refMoment.instant) {
                         break
                     }
                     
@@ -39,9 +39,9 @@ class ForwardDateRefiner: Refiner {
                 result.tags[.forwardDateRefiner] = true
             }
             
-            if try !result.start.isCertain(component: .day) && !result.start.isCertain(component: .month) &&
+            if !result.start.isCertain(component: .day) && !result.start.isCertain(component: .month) &&
                 !result.start.isCertain(component: .year) && result.start.isCertain(component: .weekday) &&
-                refMoment.isAfter((try result.start.date))
+                result.start.isDefinitelyBefore(refMoment.instant)
             {
                 // Adjust date to the coming week
                 let weekday = result.start[.weekday]!

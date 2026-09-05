@@ -72,10 +72,14 @@ func mergeResult(text: String, specificResult: ParsedResult, nonSpecificResult: 
     }
     
     specificResult.tags[.enPrioritizeSpecificDateRefiner] = true
+    specificResult.languages.formUnion(nonSpecificResult.languages)
+    specificResult.languages.insert(.english)
+    specificResult.issues += nonSpecificResult.issues
     return specificResult
 }
 
 class ENPrioritizeSpecificDateRefiner: Refiner {
+    override var language: Language { .english }
     override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
         var results = results
         let resultsLength = results.count
@@ -119,8 +123,6 @@ class ENPrioritizeSpecificDateRefiner: Refiner {
         return mergedResults
     }
 }
-
-
 
 
 

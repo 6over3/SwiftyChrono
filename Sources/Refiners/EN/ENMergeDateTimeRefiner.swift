@@ -9,10 +9,10 @@
 import Foundation
 
 class ENMergeDateTimeRefiner: MergeDateTimeRefiner {
+    override var language: Language { .english }
     override var PATTERN: String { return "^\\s*(T|at|after|before|on|of|,|-)?\\s*$" }
     override var TAGS: TagUnit { return .enMergeDateAndTimeRefiner }
 }
-
 
 
 

@@ -150,7 +150,7 @@ public class FRTimeExpressionParser: Parser {
         }
         
         if result.end == nil {
-            result.end = ParsedComponents(components: nil, ref: (try result.start.date))
+            result.end = ParsedComponents(inheritingDateFrom: result.start, ref: ref)
         }
         
         hour = 0
@@ -238,7 +238,7 @@ public class FRTimeExpressionParser: Parser {
             result.end!.assign(.meridiem, value: meridiem)
         }
         
-        if try (result.end!.date).timeIntervalSince1970 < (result.start.date).timeIntervalSince1970 {
+        if result.end!.isDefinitelyBefore(result.start) {
 						try result.end?.shiftCalendarDays(1)
         }
         

@@ -42,16 +42,14 @@ public struct ParsedComponents {
     knownValues[component] != nil
   }
 
-  public func isPossibleDate() -> Bool {
-    do { _ = try date; return true }
-    catch { return false }
-  }
-
   /// Calendar-day arithmetic must carry month/year rollover without turning
   /// implied date fields into explicitly supplied fields.
   mutating func shiftCalendarDays(_ days: Int) throws {
-    let shifted = try date.added(days, .day)
-    for (unit, value) in [(ComponentUnit.year, shifted.year), (.month, shifted.month), (.day, shifted.day)] {
+    guard let civil = ParsedCivilTime(self)?.civilDate(),
+      let shifted = civil.calendar.date(byAdding: .day, value: days, to: civil.date)
+    else { throw ChronoError.invalidDate }
+    for (unit, component) in [(ComponentUnit.year, Calendar.Component.year), (.month, .month), (.day, .day)] {
+      let value = civil.calendar.component(component, from: shifted)
       if isCertain(component: unit) { assign(unit, value: value) }
       else { imply(unit, to: value) }
     }
@@ -72,30 +70,31 @@ public struct ParsedComponents {
     }
   }
 
-  /// Rejects invalid components and DST gaps instead of rolling them into another date.
-  public var date: ChronoDate {
-    get throws {
-      let resolved = try resolvedCalendar
-      guard let year = self[.year], (1...9999).contains(year),
-        let month = self[.month], (1...12).contains(month),
-        let day = self[.day], (1...31).contains(day),
-        let hour = self[.hour], (0...23).contains(hour),
-        let minute = self[.minute], (0...59).contains(minute),
-        let second = self[.second], (0...59).contains(second),
-        let millisecond = self[.millisecond], (0...999).contains(millisecond)
-      else { throw ChronoError.invalidDate }
-      let components = DateComponents(
-        calendar: resolved, timeZone: resolved.timeZone,
-        year: year, month: month, day: day, hour: hour, minute: minute,
-        second: second, nanosecond: millisecond * 1_000_000
-      )
-      guard components.isValidDate(in: resolved), let instant = resolved.date(from: components)
-      else { throw ChronoError.invalidDate }
-      let check = resolved.dateComponents([.year, .month, .day, .hour, .minute, .second], from: instant)
-      guard check.year == year, check.month == month, check.day == day,
-        check.hour == hour, check.minute == minute, check.second == second
-      else { throw ChronoError.invalidDate }
-      return ChronoDate(instant: instant, calendar: resolved)
+  /// Resolves without silently selecting a repeated time or normalizing a missing one.
+  public var dateResolution: ParsedDateResolution {
+    guard let civil = ParsedCivilTime(self) else { return .invalid(.invalidComponents) }
+    let resolved: Calendar
+    do { resolved = try resolvedCalendar }
+    catch { return .invalid(.invalidTimeZone) }
+    return civil.resolve(in: resolved)
+  }
+
+  /// An invalid endpoint cannot justify reordering or advancing a range.
+  func isDefinitelyBefore(_ other: ParsedComponents) -> Bool {
+    guard let left = dateResolution.bounds, let right = other.dateResolution.bounds else { return false }
+    return left.latest < right.earliest
+  }
+
+  func isDefinitelyBefore(_ instant: Date) -> Bool {
+    guard let bounds = dateResolution.bounds else { return false }
+    return bounds.latest < instant
+  }
+
+  /// A time-range endpoint inherits date fields, not one arbitrarily resolved instant.
+  init(inheritingDateFrom start: ParsedComponents, ref: ChronoDate) {
+    self.init(components: nil, ref: ref, implyReferenceDate: false)
+    for component in [ComponentUnit.year, .month, .day] {
+      imply(component, to: start[component])
     }
   }
 }

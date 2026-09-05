@@ -76,12 +76,6 @@ class MergeDateRangeRefiner: Refiner {
             }
         }
         
-        if try (fromResult.start.date).timeIntervalSince1970 > (toResult.start.date).timeIntervalSince1970 {
-            let tmp = toResult
-            toResult = fromResult
-            fromResult = tmp
-        }
-        
         fromResult.end = toResult.start
         
         for tag in toResult.tags.keys {
@@ -96,13 +90,13 @@ class MergeDateRangeRefiner: Refiner {
         fromResult.index = startIndex
         fromResult.text = try text.substring(from: startIndex, to: endIndex)
         fromResult.tags[TAGS] = true
+        fromResult.languages.formUnion(toResult.languages)
+        fromResult.languages.insert(language)
+        fromResult.issues += toResult.issues
         
         return fromResult
     }
 }
-
-
-
 
 
 
