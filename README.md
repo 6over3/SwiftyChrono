@@ -50,6 +50,23 @@ Timezone abbreviations still use inherited, incomplete mappings; ambiguity and
 historical-offset handling are not yet repaired. Numeric offsets do not imply
 that these abbreviations or all date-range grammars are production-validated.
 
+Relative amounts use shared checked arithmetic across the supported offset
+grammars. An overflowing number is not one; indefinite quantities are not three;
+half is not an integer sentinel. Weeks use calendar addition, and half-month
+expressions remain unresolved rather than assuming a 30-day month. Sub-second
+relative offsets are reported as unsupported precision.
+
+In the English relative-period grammar, unquantified `last`/`next` names an
+adjacent complete calendar period; quantified forms and `past` name a rolling
+range ending/starting at the reference instant, captured at second precision.
+Range endpoints are inclusive buckets, including the final bucket inside the
+period but not the following one. Relative-day words advance/subtract calendar
+days regardless of the hour at which the query is made.
+Other languages do not yet have equivalent period grammar. Deadline words such
+as `within`, day-part meanings, and relative ranges combined with explicit
+time zones still need a complete semantic audit; this is not a claim of full
+natural-language date coverage.
+
 ## Result and error contracts
 
 - `ParsedResult.index` is a UTF-16 offset into the original input, matching

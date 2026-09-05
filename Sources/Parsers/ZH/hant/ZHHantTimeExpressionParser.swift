@@ -75,10 +75,7 @@ public class ZHHantTimeExpressionParser: Parser {
             let day1 = try match.string(from: text, atRangeIndex: dayGroup1)
 
             if day1 == "明" || day1 == "聽" {
-                // Check not "Tomorrow" on late night
-                if refMoment.hour > 1 {
-                    startMoment = try startMoment.added(1, .day)
-                }
+                startMoment = try startMoment.added(1, .day)
             } else if day1 == "昨" || day1 == "尋" || day1 == "琴" {
                 startMoment = try startMoment.added(-1, .day)
             } else if day1 == "前" {
@@ -266,10 +263,7 @@ public class ZHHantTimeExpressionParser: Parser {
         if match.isNotEmpty(atRangeIndex: dayGroup1) {
             let day1 = try match.string(from: secondText, atRangeIndex: dayGroup1)
             if day1 == "明" || day1 == "聽" {
-                // Check not "Tomorrow" on late night
-                if refMoment.hour > 1 {
-                    endMoment = try endMoment.added(1, .day)
-                }
+                endMoment = try endMoment.added(1, .day)
             } else if day1 == "昨" || day1 == "尋" || day1 == "琴" {
                 endMoment = try endMoment.added(-1, .day)
             } else if day1 == "前" {

@@ -28,10 +28,7 @@ public class JPCasualDateParser: Parser {
             result.start.imply(.meridiem, to: 1)
             
         } else if matchText == "明日" {
-            // Check not "Tomorrow" on late night
-            if refMoment.hour > 4 {
-                startMoment = try startMoment.added(1, .day)
-            }
+            startMoment = try startMoment.added(1, .day)
         } else if matchText == "昨日" {
             startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "今朝", in: matchText) {
