@@ -80,6 +80,14 @@ extension ParsedComponents {
       case .nearest: imply(unit, to: value)
       }
     }
+    switch reference {
+    case .previousWeek, .nextWeek, .currentWeek:
+      guard let week = ref.calendar.dateInterval(of: .weekOfYear, for: date.instant) else {
+        throw ChronoError.invalidDate
+      }
+      calendarContext = ParsedCalendarContext(calendar: ref.calendar, interval: week)
+    case .nearest, .previousOccurrence, .nextOccurrence: break
+    }
   }
 }
 
@@ -101,6 +109,7 @@ extension ParsedResult {
         issues.append(.invalidComponents)
         return
       }
+      if candidate.calendarContext != nil { resolved = candidate }
     }
     start = resolved
   }

@@ -1,9 +1,29 @@
 // Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-class MergeDateRangeRefiner: Refiner {
-  var PATTERN: String { "" }
-  var TAGS: TagUnit { .none }
+final class MergeDateRangeRefiner: Refiner {
+  private let grammar: Language
+  private let joiningPattern: String
+  override var language: Language { grammar }
+
+  private init(_ language: Language, joining: String) {
+    grammar = language
+    joiningPattern = "^\\s*(?:\(joining))\\s*$"
+  }
+
+  static var all: [MergeDateRangeRefiner] {
+    [
+      .init(.english, joining: "to|-"),
+      .init(.french, joining: "à|a|-"),
+      .init(.german, joining: "bis|-"),
+      .init(.russian, joining: "до|-"),
+      .init(.japanese, joining: "から|ー"),
+      .init(.spanish, joining: "a|al|hasta|-"),
+      .init(.catalan, joining: "a|al|fins a|-"),
+      .init(.chineseSimplified, joining: "到|至|-"),
+      .init(.chinese, joining: "到|至|-"),
+    ]
+  }
 
   override func refine(
     text: String, results: [ParsedResult], opt: [OptionType: Int]
@@ -17,7 +37,7 @@ class MergeDateRangeRefiner: Refiner {
       let end = previous.index + previous.text.utf16.count
       guard end <= result.index else { throw ChronoError.invalidSourceRange }
       let gap = try text.substring(from: end, to: result.index)
-      guard try NSRegularExpression.isMatch(forPattern: PATTERN, in: gap) else {
+      guard try NSRegularExpression.isMatch(forPattern: joiningPattern, in: gap) else {
         merged.append(result)
         continue
       }
@@ -32,10 +52,6 @@ class MergeDateRangeRefiner: Refiner {
   ) throws -> ParsedResult {
     var result = first
     var end = last.start
-    if !isWeekday(first.start), !isWeekday(end) {
-      inheritDateFields(into: &result.start, from: last.start)
-      inheritDateFields(into: &end, from: first.start)
-    }
     if let zone = result.start.timeZone, end.timeZone == nil {
       end.assign(timeZone: zone)
     } else if let zone = end.timeZone, result.start.timeZone == nil {
@@ -45,34 +61,27 @@ class MergeDateRangeRefiner: Refiner {
     result.text = try text.substring(
       from: first.index, to: last.index + last.text.utf16.count)
     result.tags.merge(last.tags) { first, _ in first }
-    result.tags[TAGS] = true
+    result.tags[.dateRangeRefiner] = true
     result.languages.formUnion(last.languages)
     result.languages.insert(language)
     result.issues += last.issues
     result.ambiguities.formUnion(last.ambiguities)
+    guard result.issues.isEmpty else { return result }
+    // Let Chrono re-evaluate shared relative context in a written zone before
+    // assigning endpoint dates. Two independently written zones stay independent.
+    if let zone = result.sharedTimeZone,
+      result.ref.calendar.timeZone != zone || result.start.calendar.timeZone != zone
+        || end.calendar.timeZone != zone
+    {
+      return result
+    }
+    do {
+      let range = try ParsedComponents.resolvingRange(start: result.start, end: end)
+      result.start = range.start
+      result.end = range.end
+    } catch let issue {
+      result.issues.append(issue)
+    }
     return result
-  }
-
-  private func isWeekday(_ components: ParsedComponents) -> Bool {
-    components.isCertain(component: .weekday) && !components.isCertain(component: .day)
-  }
-
-  /// Inherit omitted context, not finer precision. A month must stay a month;
-  /// a whole day must not acquire the other endpoint's clock.
-  private func inheritDateFields(into target: inout ParsedComponents, from source: ParsedComponents)
-  {
-    let fields: [ComponentUnit]
-    if target.isCertain(component: .day) || target.isCertain(component: .hour) {
-      fields = [.year, .month, .day]
-    } else if target.isCertain(component: .month) {
-      fields = [.year]
-    } else {
-      return
-    }
-    for field in fields where !target.isCertain(component: field) {
-      if let value = source.knownValues[field] {
-        target.assign(field, value: value)
-      }
-    }
   }
 }

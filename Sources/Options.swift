@@ -96,15 +96,10 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
     ] + DateContextRefiner.all + [
         // ETC
         MergeDateTimeRefiner.english,
-        ENMergeDateRangeRefiner(),
-        FRMergeDateRangeRefiner(),
         MergeDateTimeRefiner.french,
-        JPMergeDateRangeRefiner(),
         MergeDateTimeRefiner.german,
-        DEMergeDateRangeRefiner(),
         MergeDateTimeRefiner.russian,
-        RUMergeDateRangeRefiner(),
-
+    ] + MergeDateRangeRefiner.all + [
         // Extract additional info later
         ExtractTimeZoneRefiner(),
         ResolveDayPeriodRefiner(),

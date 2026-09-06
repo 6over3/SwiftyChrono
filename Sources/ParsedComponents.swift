@@ -9,6 +9,7 @@ public struct ParsedComponents {
   public private(set) var timeZone: TimeZone?
   private var computedDate: ChronoDate?
   var dayPeriod: DayPeriod?
+  var calendarContext: ParsedCalendarContext?
 
   init(components: [ComponentUnit: Int]?, ref: ChronoDate, implyReferenceDate: Bool = true) {
     calendar = ref.calendar
@@ -34,6 +35,7 @@ public struct ParsedComponents {
   public mutating func assign(_ component: ComponentUnit, value: Int?) {
     guard let value else { return }
     computedDate = nil
+    if [.year, .month, .day, .weekday].contains(component) { calendarContext = nil }
     knownValues[component] = value
     impliedValues.removeValue(forKey: component)
   }
@@ -41,6 +43,7 @@ public struct ParsedComponents {
   public mutating func imply(_ component: ComponentUnit, to value: Int?) {
     guard let value, knownValues[component] == nil else { return }
     computedDate = nil
+    if [.year, .month, .day, .weekday].contains(component) { calendarContext = nil }
     impliedValues[component] = value
   }
 
@@ -51,6 +54,7 @@ public struct ParsedComponents {
   /// Changes the written zone without retaining an instant computed in another zone.
   public mutating func assign(timeZone: TimeZone) {
     if computedDate?.calendar.timeZone != timeZone { computedDate = nil }
+    if calendarContext?.calendar.timeZone != timeZone { calendarContext = nil }
     self.timeZone = timeZone
   }
 
