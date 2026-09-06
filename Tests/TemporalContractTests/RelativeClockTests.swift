@@ -69,7 +69,7 @@ struct RelativeClockTests {
       return
     }
     var zoned = result.start
-    zoned.assign(.timeZoneOffset, value: 0)
+    zoned.assign(timeZone: try #require(TimeZone(secondsFromGMT: 0)))
     guard case .unique(let date) = zoned.dateResolution else {
       Issue.record("A numeric offset must resolve the written civil fields")
       return

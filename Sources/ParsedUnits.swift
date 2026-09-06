@@ -1,6 +1,6 @@
 // Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 public enum ComponentUnit {
-    case year, month, day, hour, minute, second, millisecond, weekday, timeZoneOffset, meridiem
+    case year, month, day, hour, minute, second, millisecond, weekday, meridiem
 }
 
 public enum TagUnit { case
@@ -83,8 +83,7 @@ public enum TagUnit { case
     ruTimeExpressionParser,
     ruWeekdayParser,
 
-    extractTimezoneAbbrRefiner,
-    extractTimezoneOffsetRefiner,
+    extractTimeZoneRefiner,
     forwardDateRefiner,
     
     enMergeDateAndTimeRefiner,

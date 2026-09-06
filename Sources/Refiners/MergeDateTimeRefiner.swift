@@ -77,7 +77,7 @@ class MergeDateTimeRefiner: Refiner {
         let beginTime = timeResult.start
         
         var beginDateTime = beginDate
-        beginDateTime.applyClock(from: beginTime)
+        if let issue = beginDateTime.applyClock(from: beginTime) { dateResult.issues.append(issue) }
         
         if beginTime.isCertain(component: .meridiem) {
             beginDateTime.assign(.meridiem, value: beginTime[.meridiem]!)
@@ -97,7 +97,7 @@ class MergeDateTimeRefiner: Refiner {
             let endTime = timeResult.end ?? timeResult.start
             
             var endDateTime = endDate
-            endDateTime.applyClock(from: endTime)
+            if let issue = endDateTime.applyClock(from: endTime) { dateResult.issues.append(issue) }
             
             if endTime.isCertain(component: .meridiem) {
                 endDateTime.assign(.meridiem, value: endTime[.meridiem]!)
@@ -133,7 +133,6 @@ class MergeDateTimeRefiner: Refiner {
         return dateResult
     }
 }
-
 
 
 

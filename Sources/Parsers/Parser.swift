@@ -12,21 +12,26 @@ public class Parser {
     text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]
   ) throws -> ParsedResult? { nil }
 
-  public func execute(text: String, ref: ChronoDate, opt: [OptionType: Int]) throws -> [ParsedResult] {
+  public func execute(text: String, ref: ChronoDate, opt: [OptionType: Int]) throws
+    -> [ParsedResult]
+  {
     let regex = try NSRegularExpression(pattern: pattern, options: .caseInsensitive)
     var results: [ParsedResult] = []
     let length = text.utf16.count
     var offset = 0
     while offset < length,
-      let match = regex.firstMatch(in: text, range: NSRange(location: offset, length: length - offset))
+      let match = regex.firstMatch(
+        in: text, range: NSRange(location: offset, length: length - offset))
     {
       let result: ParsedResult?
-      do { result = try extract(text: text, ref: ref, match: match, opt: opt) }
-      catch ChronoError.invalidDate {
+      do {
+        result = try extractWithTimeZone(text: text, ref: ref, match: match, opt: opt)
+      } catch ChronoError.invalidDate {
         var rejected = ParsedResult(
-          ref: ref, index: match.range.location, text: try match.string(from: text, atRangeIndex: 0))
+          ref: ref, index: match.range.location, text: try match.string(from: text, atRangeIndex: 0)
+        )
         rejected.issues = [.invalidComponents]
-        result = rejected
+        result = try ExtractTimeZoneRefiner.bindingZone(to: rejected, in: text)
       }
       if var result {
         result.languages.insert(language)

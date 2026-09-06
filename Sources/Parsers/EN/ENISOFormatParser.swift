@@ -49,9 +49,12 @@ public class ENISOFormatParser: Parser {
     if parsed.isNotEmpty(atRangeIndex: 8) {
       let zone = try parsed.string(from: value, atRangeIndex: 8)
       if zone.uppercased() == "Z" {
-        result.start.assign(.timeZoneOffset, value: 0)
-      } else if let offset = parsedTimeZoneOffset(zone) {
-        result.start.assign(.timeZoneOffset, value: offset)
+        guard let zero = TimeZone(secondsFromGMT: 0) else { throw ChronoError.invalidDate }
+        result.start.assign(timeZone: zero)
+      } else if let offset = parsedTimeZoneOffset(zone),
+        let timeZone = TimeZone(secondsFromGMT: offset * 60)
+      {
+        result.start.assign(timeZone: timeZone)
       } else {
         result.issues.append(.invalidTimeZone)
       }

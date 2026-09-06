@@ -5,6 +5,8 @@ public struct ParsedComponents {
   public private(set) var knownValues: [ComponentUnit: Int] = [:]
   public private(set) var impliedValues: [ComponentUnit: Int] = [:]
   public let calendar: Calendar
+  /// An explicitly written zone, distinct from the captured reference calendar.
+  public private(set) var timeZone: TimeZone?
   private var computedDate: ChronoDate?
 
   init(components: [ComponentUnit: Int]?, ref: ChronoDate, implyReferenceDate: Bool = true) {
@@ -43,6 +45,12 @@ public struct ParsedComponents {
 
   public func isCertain(component: ComponentUnit) -> Bool {
     knownValues[component] != nil
+  }
+
+  /// Changes the written zone without retaining an instant computed in another zone.
+  public mutating func assign(timeZone: TimeZone) {
+    if computedDate?.calendar.timeZone != timeZone { computedDate = nil }
+    self.timeZone = timeZone
   }
 
   /// Calendar arithmetic already identifies an instant, including which occurrence
@@ -86,26 +94,17 @@ public struct ParsedComponents {
     }
   }
 
-  /// The endpoint's explicit zone takes precedence over the query's captured zone.
+  /// Named zones retain their historical rules; offsets remain fixed-offset zones.
   public var resolvedCalendar: Calendar {
-    get throws {
-      var resolved = calendar
-      if let offset = self[.timeZoneOffset] {
-        let seconds = offset.multipliedReportingOverflow(by: 60)
-        guard !seconds.overflow,
-          let zone = TimeZone(secondsFromGMT: seconds.partialValue)
-        else { throw ChronoError.invalidDate }
-        resolved.timeZone = zone
-      }
-      return resolved
-    }
+    var resolved = calendar
+    if let timeZone { resolved.timeZone = timeZone }
+    return resolved
   }
 
   /// Resolves without silently selecting a repeated time or normalizing a missing one.
   public var dateResolution: ParsedDateResolution {
     guard let civil = ParsedCivilTime(self) else { return .invalid(.invalidComponents) }
-    let resolved: Calendar
-    do { resolved = try resolvedCalendar } catch { return .invalid(.invalidTimeZone) }
+    let resolved = resolvedCalendar
     if let computedDate, computedDate.calendar == resolved {
       return .unique(computedDate)
     }

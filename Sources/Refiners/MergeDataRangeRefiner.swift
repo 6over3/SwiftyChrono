@@ -76,6 +76,11 @@ class MergeDateRangeRefiner: Refiner {
             }
         }
         
+        if let zone = fromResult.start.timeZone, toResult.start.timeZone == nil {
+            toResult.start.assign(timeZone: zone)
+        } else if let zone = toResult.start.timeZone, fromResult.start.timeZone == nil {
+            fromResult.start.assign(timeZone: zone)
+        }
         fromResult.end = toResult.start
         
         for tag in toResult.tags.keys {
@@ -97,7 +102,6 @@ class MergeDateRangeRefiner: Refiner {
         return fromResult
     }
 }
-
 
 
 
