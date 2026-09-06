@@ -11,7 +11,7 @@ import Foundation
 
 private let PATTERN =
   "(\\d+|\(ZH_HANT_NUMBER_PATTERN)+|半|幾)(?:\\s*)" + "(?:個)?" + "(秒(?:鐘)?|分鐘|小時|鐘|日|天|星期|禮拜|月|年)"
-  + "(?:(?:之|過)?後|(?:之)?內)"
+  + "((?:之|過)?後|(?:之)?內)"
 
 public class ZHHantDeadlineFormatParser: Parser {
   override var pattern: String { return PATTERN }
@@ -27,7 +27,12 @@ public class ZHHantDeadlineFormatParser: Parser {
       text: match.string(from: text, atRangeIndex: 1), language: language)
     let unit = try RelativeDateUnit(
       text: match.string(from: text, atRangeIndex: 2), language: language)
-    try result.applyOffset(amount: amount, unit: unit, direction: .future)
+    let relation = try match.string(from: text, atRangeIndex: 3)
+    if relation.hasSuffix("內") {
+      try result.applyRollingRange(amount: amount, unit: unit, direction: .future)
+    } else {
+      try result.applyOffset(amount: amount, unit: unit, direction: .future)
+    }
     return result
   }
 }
