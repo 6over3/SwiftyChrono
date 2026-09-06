@@ -95,6 +95,7 @@ final class MergeDateTimeRefiner: Refiner {
     result.languages.formUnion(clock.languages)
     result.languages.insert(language)
     result.issues += clock.issues
+    result.ambiguities.formUnion(clock.ambiguities)
     if unresolved { result.issues.append(.unresolvedComposition) }
     guard result.issues.isEmpty else { return result }
     // Repeating a time of day within several days is not one continuous interval.

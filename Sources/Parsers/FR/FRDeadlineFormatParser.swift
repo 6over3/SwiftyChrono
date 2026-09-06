@@ -10,11 +10,11 @@ import Foundation
 
 private let PATTERN =
   "(\\W|^)" + "(dans|en)\\s*"
-  + "(\(FR_INTEGER_WORDS_PATTERN)|[0-9]+|une?|(?:\\s*quelques)?|demi(?:\\s*|-?)?)\\s*"
+  + "(\(FR_INTEGER_WORDS_PATTERN)|[+-]?[0-9]+(?:[.,][0-9]+)?|une?|quelques|demi(?:\\s*|-?)?)\\s*"
   + "(secondes?|min(?:ute)?s?|heures?|jours?|semaines?|mois|années?)\\s*" + "(?=\\W|$)"
 
 private let STRICT_PATTERN =
-  "(\\W|^)" + "(dans|en)\\s*" + "(\(FR_INTEGER_WORDS_PATTERN)|[0-9]+|un?)\\s*"
+  "(\\W|^)" + "(dans|en)\\s*" + "(\(FR_INTEGER_WORDS_PATTERN)|[+-]?[0-9]+(?:[.,][0-9]+)?|une?)\\s*"
   + "(secondes?|minutes?|heures?|jours?)\\s*" + "(?=\\W|$)"
 
 public class FRDeadlineFormatParser: Parser {
@@ -27,6 +27,10 @@ public class FRDeadlineFormatParser: Parser {
     let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
     var result = ParsedResult(ref: ref, index: index, text: matchText)
     result.tags[.frDeadlineFormatParser] = true
+    if try match.string(from: text, atRangeIndex: 2).lowercased() == "en" {
+      result.issues.append(.unresolvedComposition)
+      return result
+    }
     let amount = try RelativeDateAmount(
       text: match.string(from: text, atRangeIndex: 3), language: language)
     let unit = try RelativeDateUnit(

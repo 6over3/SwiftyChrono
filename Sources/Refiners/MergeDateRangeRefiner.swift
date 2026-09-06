@@ -49,6 +49,7 @@ class MergeDateRangeRefiner: Refiner {
     result.languages.formUnion(last.languages)
     result.languages.insert(language)
     result.issues += last.issues
+    result.ambiguities.formUnion(last.ambiguities)
     return result
   }
 

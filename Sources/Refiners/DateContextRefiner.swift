@@ -75,6 +75,7 @@ final class DateContextRefiner: Refiner {
     result.tags[.dateContextRefiner] = true
     result.languages = selector.languages.union(period.languages).union([language])
     result.issues = selector.issues + period.issues
+    result.ambiguities = selector.ambiguities.union(period.ambiguities)
     guard result.issues.isEmpty else { return result }
     do {
       let zones = Set(

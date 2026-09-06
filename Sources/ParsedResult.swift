@@ -1,6 +1,11 @@
 // Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
+/// A valid date interpretation whose wording also admits a non-date meaning.
+public enum ParsedDateAmbiguity: Hashable, Sendable {
+  case durationOrOffset
+}
+
 public struct ParsedResult {
   public let ref: ChronoDate
   /// UTF-16 offset into the original input, matching NSRegularExpression.
@@ -11,6 +16,8 @@ public struct ParsedResult {
   public var languages: Set<Language> = []
   /// Recognized input that cannot be represented, retained rather than partially applied.
   public var issues: [ParsedDateIssue] = []
+  /// Callers must not automatically filter by one interpretation of this wording.
+  public var ambiguities: Set<ParsedDateAmbiguity> = []
   public var start: ParsedComponents
   public var end: ParsedComponents?
   let isMoveIndexMode: Bool

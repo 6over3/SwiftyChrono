@@ -9,7 +9,9 @@
 import Foundation
 
 private let PATTERN =
-  "(\\W|^)(d'aquí|dins\\s*de|dintre\\s*de|dins\\s*d'|dintre\\s*d'|en)\\s*([0-9]+|mig|mitja|una?)\\s*(minuts?|hores|hora|dies|dia)\\s*(?=(?:\\W|$))"
+  "(\\W|^)(d['’]aquí(?:\\s+a)?|dins\\s*(?:de|d['’])|dintre\\s*(?:de|d['’])|en)\\s*"
+  + "(\(CA_INTEGER_WORDS_PATTERN)|[+-]?[0-9]+(?:[.,][0-9]+)?|mig|mitja|una?)\\s*"
+  + "(segons?|minuts?|hores|hora|dies|dia|setmanes?|mesos|mes|anys?)\\s*(?=\\W|$)"
 
 public class CADeadlineFormatParser: Parser {
   override var pattern: String { return PATTERN }
@@ -21,6 +23,11 @@ public class CADeadlineFormatParser: Parser {
     let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
     var result = ParsedResult(ref: ref, index: index, text: matchText)
     result.tags[.caDeadlineFormatParser] = true
+    let relation = try match.string(from: text, atRangeIndex: 2).lowercased()
+    guard relation.hasPrefix("d'aquí") || relation.hasPrefix("d’aquí") else {
+      result.issues.append(.unresolvedComposition)
+      return result
+    }
     let amount = try RelativeDateAmount(
       text: match.string(from: text, atRangeIndex: 3), language: language)
     let unit = try RelativeDateUnit(

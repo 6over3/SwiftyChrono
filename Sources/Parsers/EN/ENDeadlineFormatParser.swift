@@ -35,6 +35,7 @@ public class ENDeadlineFormatParser: Parser {
       try result.applyRollingRange(amount: amount, unit: unit, direction: .future)
     } else {
       try result.applyOffset(amount: amount, unit: unit, direction: .future)
+      result.ambiguities.insert(.durationOrOffset)
     }
     return result
   }

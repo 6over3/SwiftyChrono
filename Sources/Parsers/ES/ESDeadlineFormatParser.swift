@@ -9,7 +9,9 @@
 import Foundation
 
 private let PATTERN =
-  "(\\W|^)(dentro\\s*de|en)\\s*([0-9]+|medi[oa]|una?)\\s*(minutos?|horas?|d[ií]as?)\\s*(?=(?:\\W|$))"
+  "(\\W|^)(dentro\\s+de|en)\\s*"
+  + "(\(ES_INTEGER_WORDS_PATTERN)|[+-]?[0-9]+(?:[.,][0-9]+)?|medi[oa]|una?)\\s*"
+  + "(segundos?|minutos?|horas?|d[ií]as?|semanas?|mes(?:es)?|años?)\\s*(?=\\W|$)"
 
 public class ESDeadlineFormatParser: Parser {
   override var pattern: String { return PATTERN }
@@ -26,6 +28,9 @@ public class ESDeadlineFormatParser: Parser {
     let unit = try RelativeDateUnit(
       text: match.string(from: text, atRangeIndex: 4), language: language)
     try result.applyOffset(amount: amount, unit: unit, direction: .future)
+    if try match.string(from: text, atRangeIndex: 2).lowercased() == "en" {
+      result.ambiguities.insert(.durationOrOffset)
+    }
     return result
   }
 }
