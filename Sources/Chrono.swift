@@ -13,6 +13,27 @@ public struct Chrono {
     modeOption = strict ? strictModeOption() : casualModeOption()
   }
 
+  /// Derived from this parser's registered components, including strict/casual mode.
+  /// Neutral syntax remains available alongside each requested language.
+  public var languageCapabilities: [Language: Set<TemporalGrammarFeature>] {
+    var capabilities: [Language: Set<TemporalGrammarFeature>] = [:]
+    for parser in modeOption.parsers {
+      capabilities[parser.language, default: []].insert(
+        parser.language == .neutral ? .isoDates : .localizedDatesAndClocks)
+      if parser is RelativePeriodParser {
+        capabilities[parser.language, default: []].insert(.relativePeriods)
+      }
+    }
+    for refiner in modeOption.refiners {
+      if refiner is TemporalComparisonRefiner {
+        capabilities[refiner.language, default: []].insert(.comparisons)
+      } else if refiner is MergeDateTimeRefiner {
+        capabilities[refiner.language, default: []].insert(.dayScopedClockComparisons)
+      }
+    }
+    return capabilities
+  }
+
   public func parse(
     text: String,
     refDate: Date,

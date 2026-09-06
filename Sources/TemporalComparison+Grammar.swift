@@ -1,12 +1,22 @@
+import Foundation
+
 extension TemporalComparisonGrammar {
   struct Rule {
     let comparison: TemporalComparison
     let pattern: String
     let suffix: Bool
 
-    init(_ comparison: TemporalComparison, prefix: String) {
+    init(_ comparison: TemporalComparison, prefix: String, article: String? = nil) {
       self.comparison = comparison
-      pattern = "(?<![\\p{L}\\p{N}_])(?:\(prefix))(?![\\p{L}\\p{N}_])"
+      let phrase = prefix.replacingOccurrences(of: " ", with: "\\s+")
+      let qualifier: String
+      if let article {
+        qualifier = "(?:\\s+(?:\(article)))?"
+      } else {
+        qualifier = ""
+      }
+      // Elided articles end in an apostrophe immediately before their operand.
+      pattern = "(?<![\\p{L}\\p{N}_])(?:\(phrase))\(qualifier)(?:(?![\\p{L}\\p{N}_])|(?<=['’]))"
       suffix = false
     }
 
@@ -22,32 +32,39 @@ extension TemporalComparisonGrammar {
     case .neutral: []
     case .english:
       [
-        .init(.before, prefix: "before|earlier than"),
-        .init(.after, prefix: "after|later than"),
-        .init(.since, prefix: "since"), .init(.through, prefix: "through|up to and including"),
-        .init(.unresolved, prefix: "until"),
+        .init(.before, prefix: "before|earlier than", article: "the"),
+        .init(.after, prefix: "after|later than", article: "the"),
+        .init(.since, prefix: "since", article: "the"),
+        .init(.through, prefix: "through|up to and including", article: "the"),
+        .init(.unresolved, prefix: "until", article: "the"),
       ]
     case .french:
       [
-        .init(.before, prefix: "avant"), .init(.after, prefix: "après"),
-        .init(.since, prefix: "depuis"), .init(.unresolved, prefix: "jusqu['’]à"),
+        .init(.before, prefix: "avant", article: "le|la|les|l['’]"),
+        .init(.after, prefix: "après", article: "le|la|les|l['’]"),
+        .init(.since, prefix: "depuis", article: "le|la|les|l['’]"),
+        .init(.unresolved, prefix: "jusqu['’](?:à|au|aux)", article: "la|l['’]"),
       ]
     case .german:
       [
-        .init(.before, prefix: "vor"), .init(.after, prefix: "nach"),
-        .init(.since, prefix: "seit|ab"), .init(.unresolved, prefix: "bis"),
+        .init(.before, prefix: "vor", article: "dem|der|den"),
+        .init(.after, prefix: "nach", article: "dem|der|den"),
+        .init(.since, prefix: "seit|ab", article: "dem|der|den"),
+        .init(.unresolved, prefix: "bis", article: "zum|zur"),
       ]
     case .spanish:
       [
-        .init(.before, prefix: "antes de(?: las)?"),
-        .init(.after, prefix: "después de(?: las)?"), .init(.since, prefix: "desde(?: las)?"),
-        .init(.unresolved, prefix: "hasta"),
+        .init(.before, prefix: "antes del?", article: "la|las|los"),
+        .init(.after, prefix: "después del?", article: "la|las|los"),
+        .init(.since, prefix: "desde", article: "el|la|las|los"),
+        .init(.unresolved, prefix: "hasta", article: "el|la|las|los"),
       ]
     case .catalan:
       [
-        .init(.before, prefix: "abans de(?: les)?"),
-        .init(.after, prefix: "després de(?: les)?"), .init(.since, prefix: "des de(?: les| la)?"),
-        .init(.unresolved, prefix: "fins a"),
+        .init(.before, prefix: "abans del?", article: "la|les|els|l['’]"),
+        .init(.after, prefix: "després del?", article: "la|les|els|l['’]"),
+        .init(.since, prefix: "des del?", article: "la|les|els|l['’]"),
+        .init(.unresolved, prefix: "fins al?", article: "la|les|els|l['’]"),
       ]
     case .russian:
       [

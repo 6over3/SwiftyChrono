@@ -156,6 +156,6 @@ public func casualModeOption() -> ModeOptio {
     return options
 }
 
-public enum Language: Hashable, CaseIterable {
+public enum Language: Hashable, CaseIterable, Sendable {
     case neutral, english, spanish, catalan, french, japanese, german, chinese, russian, chineseSimplified
 }

@@ -39,6 +39,21 @@ public enum TemporalComparisonGrammar {
       upper = match.range.upperBound
       selected.append(match.comparison)
     }
+    // A complete operator with no following operand is unfinished input, not
+    // permission to apply the date immediately before it. Do not consume prose.
+    var trailingEnd = upper
+    for match in matches.filter({ !$0.suffix }).sorted(by: {
+      $0.range.lowerBound < $1.range.lowerBound
+    }) {
+      guard match.range.lowerBound >= trailingEnd,
+        text[trailingEnd..<match.range.lowerBound].allSatisfy(\.isWhitespace)
+      else { continue }
+      trailingEnd = match.range.upperBound
+    }
+    if trailingEnd > upper, text[trailingEnd...].allSatisfy(\.isWhitespace) {
+      upper = trailingEnd
+      selected.append(.unresolved)
+    }
     guard let comparison = selected.first else { return nil }
     return TemporalComparisonBinding(
       comparison: selected.count == 1 ? comparison : .unresolved,
