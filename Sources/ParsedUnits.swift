@@ -57,7 +57,6 @@ public enum TagUnit { case
     deWeekdayParser,
     deMorgenTimeParser,
     
-    zhHantCasualDateParser,
     zhHantDateParser,
     zhHantDeadlineFormatParser,
     zhHantAgoFormatParser,
@@ -65,7 +64,6 @@ public enum TagUnit { case
     zhHantWeekdayParser,
     zhHantRelationWeekdayParser,
 
-    zhHansCasualDateParser,
     zhHansDateParser,
     zhHansDeadlineFormatParser,
     zhHansAgoFormatParser,

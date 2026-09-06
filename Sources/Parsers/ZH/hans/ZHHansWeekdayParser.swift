@@ -28,7 +28,7 @@ public class ZHHansWeekdayParser: Parser {
             return nil
         }
 
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: "")
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: .nearest)
         result.tags[.zhHansWeekdayParser] = true
         return result
     }

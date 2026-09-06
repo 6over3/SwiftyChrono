@@ -2,7 +2,7 @@
 import Foundation
 
 public enum OptionType: String {
-  case morning, afternoon, evening, noon, forwardDate
+  case forwardDate
 }
 
 /// Language grammars share explicit per-call context, never global date settings.

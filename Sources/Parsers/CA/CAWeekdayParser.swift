@@ -35,22 +35,22 @@ public class CAWeekdayParser: Parser {
         
         let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
         let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
-        var modifier = ""
+        var modifier: WeekdayReference = .nearest
         if prefix != nil || postfix != nil {
             let norm = (prefix ?? postfix ?? "").lowercased()
             
             if norm == "passat" || norm == "passada" {
-                modifier = "last"
+                modifier = .previousWeek
             }
             else if norm == "pròxim" || norm == "proper" || norm == "pròxima" || norm == "propera" {
-                modifier = "next"
+                modifier = .nextWeek
             }
             else if norm == "aquest" || norm == "aquesta" {
-                modifier =  "this"
+                modifier = .currentWeek
             }
         }
         
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: modifier)
         result.tags[.caWeekdayParser] = true
         return result
     }

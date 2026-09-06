@@ -8,6 +8,7 @@ public struct ParsedComponents {
   /// An explicitly written zone, distinct from the captured reference calendar.
   public private(set) var timeZone: TimeZone?
   private var computedDate: ChronoDate?
+  var dayPeriod: DayPeriod?
 
   init(components: [ComponentUnit: Int]?, ref: ChronoDate, implyReferenceDate: Bool = true) {
     calendar = ref.calendar

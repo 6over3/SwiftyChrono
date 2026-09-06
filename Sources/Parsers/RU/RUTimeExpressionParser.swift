@@ -75,9 +75,11 @@ public class RUTimeExpressionParser: Parser {
         // ----- Hours
         let hourText = match.isNotEmpty(atRangeIndex: hourGroup) ? try match.string(from: text, atRangeIndex: hourGroup).lowercased() : ""
         if hourText == "вечера" {
+            result.start.dayPeriod = DayPeriod(.evening1, language: language)
             meridiem = 1
             hour = 12
         } else if hourText == "утра" {
+            result.start.dayPeriod = DayPeriod(.morning1, language: language)
             meridiem = 0
             hour = 0
         } else if let h = Int(hourText) {
@@ -104,26 +106,24 @@ public class RUTimeExpressionParser: Parser {
         
         // ----- AM & PM
         if match.isNotEmpty(atRangeIndex: amPmHourGroup) {
-            if hour > 12 {
-                return nil
+            let word = try match.string(from: text, atRangeIndex: amPmHourGroup).lowercased()
+            let phase: DayPeriod.Phase
+            switch word {
+            case "утра": phase = .am
+            case "вечера": phase = .pm
+            case "ночи": phase = .night1
+            default: throw ChronoError.invalidSourceRange
             }
-            
-            let ampm = try match.string(from: text, atRangeIndex: amPmHourGroup).lowercased()
-            if ampm == "утра" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
+            result.start.dayPeriod = DayPeriod(phase, language: language)
         }
-        
-        result.start.assign(.hour, value: hour)
-        result.start.assign(.minute, value: minute)
+
+        if Int(hourText) != nil {
+            result.start.assign(.hour, value: hour)
+            result.start.assign(.minute, value: minute)
+        } else {
+            result.start.imply(.hour, to: hour)
+            result.start.imply(.minute, to: minute)
+        }
         if meridiem >= 0 {
             result.start.assign(.meridiem, value: meridiem)
         } else {
@@ -192,44 +192,21 @@ public class RUTimeExpressionParser: Parser {
         
         // ----- AM & PM
         if match.isNotEmpty(atRangeIndex: amPmHourGroup) {
-            if hour > 12 {
-                return nil
+            let word = try match.string(from: secondText, atRangeIndex: amPmHourGroup).lowercased()
+            let phase: DayPeriod.Phase
+            switch word {
+            case "утра": phase = .am
+            case "вечера": phase = .pm
+            case "ночи": phase = .night1
+            default: throw ChronoError.invalidSourceRange
             }
-            
-            let ampm = try match.string(from: secondText, atRangeIndex: amPmHourGroup).lowercased()
-            if ampm == "утра" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                    if !result.end!.isCertain(component: .day) {
-                        try result.end!.shiftCalendarDays(1)
-                    }
-                }
-            } else {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
-            
-            if !result.start.isCertain(component: .meridiem) {
-                if meridiem == 0 {
-                    result.start.imply(.meridiem, to: 0)
-                    
-                    if result.start[.hour] == 12 {
-                        result.start.assign(.hour, value: 0)
-                    }
-                } else {
-                    result.start.imply(.meridiem, to: 1)
-                    
-                    if let hour = result.start[.hour], hour != 12 {
-                        result.start.assign(.hour, value: hour + 12)
-                    }
-                }
+            result.end?.dayPeriod = DayPeriod(phase, language: language)
+            if !result.start.isCertain(component: .meridiem), result.start.dayPeriod == nil {
+                result.start.dayPeriod = DayPeriod(phase, language: language)
             }
         }
-        
-        result.text = result.text + matchText
+
+        result.text += matchText
         result.end!.assign(.hour, value: hour)
         result.end!.assign(.minute, value: minute)
         if meridiem >= 0 {
@@ -244,6 +221,8 @@ public class RUTimeExpressionParser: Parser {
             }
         }
         
+        result.resolveClockQualifiers()
+        guard result.issues.isEmpty else { return result }
         if result.end!.isDefinitelyBefore(result.start) {
                         try result.end?.shiftCalendarDays(1)
         }

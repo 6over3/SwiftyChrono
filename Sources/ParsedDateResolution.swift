@@ -17,9 +17,11 @@ public enum ParsedDateResolution {
 }
 
 /// Invalid user input remains attached to its full parsed expression.
-public enum ParsedDateIssue: Hashable {
+public enum ParsedDateIssue: Error, Hashable, Sendable {
   case invalidComponents
   case invalidTimeZone
   case nonexistentLocalTime
   case unsupportedPrecision
+  /// A day part lacks a definite date or an unambiguous bounded interpretation.
+  case unresolvedDayPeriod
 }

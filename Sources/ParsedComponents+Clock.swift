@@ -4,7 +4,11 @@ extension ParsedComponents {
     if let written = timeZone, let incoming = clock.timeZone, written != incoming {
       return .invalidTimeZone
     }
-    for component in [ComponentUnit.hour, .minute, .second, .millisecond] {
+    if let incoming = clock.dayPeriod {
+      if let dayPeriod, dayPeriod != incoming { return .invalidComponents }
+      dayPeriod = incoming
+    }
+    for component in [ComponentUnit.hour, .minute, .second, .millisecond, .meridiem] {
       guard let value = clock[component] else { continue }
       if clock.isCertain(component: component) {
         assign(component, value: value)

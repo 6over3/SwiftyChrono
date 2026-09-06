@@ -30,18 +30,18 @@ public class ZHHantRelationWeekdayParser: Parser {
             return nil
         }
 
-        var modifier = ""
+        var modifier: WeekdayReference = .nearest
         let prefix = try match.string(from: text, atRangeIndex: prefixGroup)
 
         if prefix == "上" {
-            modifier = "last"
+            modifier = .previousWeek
         } else if prefix == "下" {
-            modifier = "next"
+            modifier = .nextWeek
         } else if prefix == "今" || prefix == "這" || prefix == "呢" {
-            modifier = "this"
+            modifier = .currentWeek
         }
 
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: modifier)
         result.tags[.zhHantRelationWeekdayParser] = true
         return result
     }

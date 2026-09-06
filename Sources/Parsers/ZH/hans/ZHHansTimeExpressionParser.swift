@@ -179,48 +179,13 @@ public class ZHHansTimeExpressionParser: Parser {
                     hour += 12
                 }
             }
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup1) {
-            let zhAMPMString1 = try match.string(from: text, atRangeIndex: zhAmPmHourGroup1)
-            let zhAMPM1 = zhAMPMString1.firstString ?? ""
-            if zhAMPM1 == "早" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM1 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup2) {
-            let zhAMPMString2 = try match.string(from: text, atRangeIndex: zhAmPmHourGroup2)
-            let zhAMPM2 = zhAMPMString2.firstString ?? ""
-            if zhAMPM2 == "上" || zhAMPM2 == "早" || zhAMPM2 == "凌" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM2 == "下" || zhAMPM2 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup3) {
-            let zhAMPMString3 = try match.string(from: text, atRangeIndex: zhAmPmHourGroup3)
-            let zhAMPM3 = zhAMPMString3.firstString ?? ""
-            if zhAMPM3 == "上" || zhAMPM3 == "早" || zhAMPM3 == "凌" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM3 == "下" || zhAMPM3 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
+        }
+        for group in [zhAmPmHourGroup1, zhAmPmHourGroup2, zhAmPmHourGroup3]
+        where match.isNotEmpty(atRangeIndex: group) {
+            let token = try match.string(from: text, atRangeIndex: group)
+            guard let period = DayPeriod(chineseClockText: token, language: language)
+            else { throw ChronoError.invalidSourceRange }
+            result.start.dayPeriod = period
         }
 
         result.start.assign(.hour, value: hour)
@@ -385,48 +350,13 @@ public class ZHHansTimeExpressionParser: Parser {
                 }
             }
 
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup1) {
-            let zhAMPMString1 = try match.string(from: secondText, atRangeIndex: zhAmPmHourGroup1)
-            let zhAMPM1 = zhAMPMString1.firstString ?? ""
-            if zhAMPM1 == "早" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM1 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup2) {
-            let zhAMPMString2 = try match.string(from: secondText, atRangeIndex: zhAmPmHourGroup2)
-            let zhAMPM2 = zhAMPMString2.firstString ?? ""
-            if zhAMPM2 == "上" || zhAMPM2 == "早" || zhAMPM2 == "凌" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM2 == "下" || zhAMPM2 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
-        } else if match.isNotEmpty(atRangeIndex: zhAmPmHourGroup3) {
-            let zhAMPMString3 = try match.string(from: secondText, atRangeIndex: zhAmPmHourGroup3)
-            let zhAMPM3 = zhAMPMString3.firstString ?? ""
-            if zhAMPM3 == "上" || zhAMPM3 == "早" || zhAMPM3 == "凌" {
-                meridiem = 0
-                if hour == 12 {
-                    hour = 0
-                }
-            } else if zhAMPM3 == "下" || zhAMPM3 == "晚" {
-                meridiem = 1
-                if hour != 12 {
-                    hour += 12
-                }
-            }
+        }
+        for group in [zhAmPmHourGroup1, zhAmPmHourGroup2, zhAmPmHourGroup3]
+        where match.isNotEmpty(atRangeIndex: group) {
+            let token = try match.string(from: secondText, atRangeIndex: group)
+            guard let period = DayPeriod(chineseClockText: token, language: language)
+            else { throw ChronoError.invalidSourceRange }
+            result.end?.dayPeriod = period
         }
 
         result.text = try result.text + match.string(from: secondText, atRangeIndex: 0)
@@ -445,6 +375,8 @@ public class ZHHansTimeExpressionParser: Parser {
             }
         }
 
+        result.resolveClockQualifiers()
+        guard result.issues.isEmpty else { return result }
         if result.end!.isDefinitelyBefore(result.start) {
             try result.end!.shiftCalendarDays(1)
         }

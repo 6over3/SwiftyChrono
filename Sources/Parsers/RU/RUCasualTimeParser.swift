@@ -8,7 +8,7 @@
 
 import Foundation
 
-private let PATTERN = "(\\W|^)((этим|этой|в эту)?\\s*(утром|обед|в полдень|ночь))"//"(\\W|^)((?:утром|обед|в полдень|вечером|в полночь|ночью|ночь))"
+private let PATTERN = "(\\W|^)((этим|этой|в эту)?\\s*(утром|в полдень|вечером|ночью|ночь))(?=\\W|$)"
 private let timeMatch = 4
 
 public class RUCasualTimeParser: Parser {
@@ -18,18 +18,21 @@ public class RUCasualTimeParser: Parser {
     override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
         let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
+        if match.isNotEmpty(atRangeIndex: 3) {
+            try result.start.assign(date: ref, precision: .day)
+        }
         
         if match.isNotEmpty(atRangeIndex: timeMatch) {
-            let time = try match.string(from: text, atRangeIndex: timeMatch)
+            let time = try match.string(from: text, atRangeIndex: timeMatch).lowercased()
             switch time {
-            case "обед":
-                result.start.imply(.hour, to: opt[.afternoon] ?? 15)
-            case "вечером", "ночью", "ночь":
-                result.start.imply(.hour, to: opt[.evening] ?? 22)
+            case "вечером":
+                result.start.dayPeriod = DayPeriod(.evening1, language: language)
+            case "ночью", "ночь":
+                result.start.dayPeriod = DayPeriod(.night1, language: language)
             case "утром":
-                result.start.imply(.hour, to: opt[.morning] ?? 6)
+                result.start.dayPeriod = DayPeriod(.morning1, language: language)
             case "в полдень":
-                result.start.imply(.hour, to: opt[.noon] ?? 12)
+                result.start.dayPeriod = DayPeriod(.noon, language: language)
             default: break
             }
         }

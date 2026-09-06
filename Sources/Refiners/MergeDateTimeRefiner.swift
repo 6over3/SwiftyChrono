@@ -1,141 +1,93 @@
-//
-//  MergeDateTimeRefiner.swift
-//  SwiftyChrono
-//
-//  Created by Jerry Chen on 2/16/17.
-//  Copyright © 2017 Potix. All rights reserved.
-//
-
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
 class MergeDateTimeRefiner: Refiner {
-    var PATTERN: String { return "" }
-    var TAGS: TagUnit { return .none }
-    
-    override public func refine(text: String, results: [ParsedResult], opt: [OptionType: Int]) throws -> [ParsedResult] {
-        var results = results
-        let resultsLength = results.count
-        if resultsLength < 2 { return results }
-        
-        var mergedResults = [ParsedResult]()
-        var currentResult: ParsedResult?
-        var previousResult: ParsedResult
-        
-        
-        var i = 1
-        while i < resultsLength {
-            currentResult = results[i]
-            previousResult = results[i-1]
-            
-            if try isDateOnly(result: previousResult) && isTimeOnly(result: currentResult!) &&
-                isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
-                
-                results[i] = try mergeResult(refText: text, dateResult: previousResult, timeResult: currentResult!)
-                currentResult = results[i]
-                
-                i += 1
-                continue
-            } else if try isDateOnly(result: currentResult!) && isTimeOnly(result: previousResult) &&
-                isAbleToMerge(text: text, previousResult: previousResult, currentResult: currentResult!) {
-                
-                results[i] = try mergeResult(refText: text, dateResult: currentResult!, timeResult: previousResult)
-                currentResult = results[i]
-                
-                i += 1
-                continue
-            }
-            
-            mergedResults.append(previousResult)
-            i += 1
-        }
-        
-        if let currentResult = currentResult {
-            mergedResults.append(currentResult)
-        }
-        
-        return mergedResults
+  var PATTERN: String { "" }
+  var TAGS: TagUnit { .none }
+
+  override func refine(
+    text: String, results: [ParsedResult], opt: [OptionType: Int]
+  ) throws -> [ParsedResult] {
+    var merged: [ParsedResult] = []
+    for result in results {
+      guard let previous = merged.last else {
+        merged.append(result)
+        continue
+      }
+      let date: ParsedResult
+      let clock: ParsedResult
+      if isDateOnly(previous), isTimeOnly(result) {
+        date = previous
+        clock = result
+      } else if isDateOnly(result), isTimeOnly(previous) {
+        date = result
+        clock = previous
+      } else {
+        merged.append(result)
+        continue
+      }
+      let end = previous.index + previous.text.utf16.count
+      guard end <= result.index else { throw ChronoError.invalidSourceRange }
+      let gap = try text.substring(from: end, to: result.index)
+      guard try NSRegularExpression.isMatch(forPattern: PATTERN, in: gap) else {
+        merged.append(result)
+        continue
+      }
+      merged.removeLast()
+      merged.append(try merge(date: date, clock: clock, in: text))
     }
-    
-    private func isDateOnly(result: ParsedResult) -> Bool {
-        return !result.start.isCertain(component: .hour)
+    return merged
+  }
+
+  private func isDateOnly(_ result: ParsedResult) -> Bool {
+    !result.start.isCertain(component: .hour)
+  }
+
+  private func isTimeOnly(_ result: ParsedResult) -> Bool {
+    ![ComponentUnit.year, .month, .day, .weekday].contains { result.start.isCertain(component: $0) }
+      && (result.start.isCertain(component: .hour) || result.start.dayPeriod != nil)
+  }
+
+  private func merge(date: ParsedResult, clock: ParsedResult, in text: String) throws
+    -> ParsedResult
+  {
+    var result = date
+    result.index = min(date.index, clock.index)
+    result.text = try text.substring(
+      from: result.index,
+      to: max(date.index + date.text.utf16.count, clock.index + clock.text.utf16.count))
+    result.tags.merge(clock.tags) { first, _ in first }
+    result.tags[TAGS] = true
+    result.languages.formUnion(clock.languages)
+    result.languages.insert(language)
+    result.issues += clock.issues
+    guard result.issues.isEmpty else { return result }
+    // Repeating a time of day within several days is not one continuous interval.
+    guard date.end == nil else {
+      result.issues.append(.unresolvedDayPeriod)
+      return result
     }
-    
-    private func isTimeOnly(result: ParsedResult) -> Bool {
-        return !result.start.isCertain(component: .month) && !result.start.isCertain(component: .weekday)
+    if let issue = result.start.applyClock(from: clock.start) {
+      result.issues.append(issue)
+      return result
     }
-    
-    private func isAbleToMerge(text: String, previousResult: ParsedResult, currentResult: ParsedResult) throws -> Bool {
-        let (startIndex, endIndex) = sortTwoNumbers(previousResult.index + previousResult.text.utf16.count, currentResult.index)
-        
-        let textBetween = try text.substring(from: startIndex, to: endIndex)
-        return try NSRegularExpression.isMatch(forPattern: PATTERN, in: textBetween)
+    if let endpoint = clock.end {
+      var end = date.start
+      // An introductory qualifier describes the first clock; a separately
+      // written endpoint may carry its own qualifier and may cross midnight.
+      end.dayPeriod = nil
+      if let issue = end.applyClock(from: endpoint) {
+        result.issues.append(issue)
+        return result
+      }
+      result.end = end
+      result.resolveClockQualifiers()
+      guard result.issues.isEmpty else { return result }
+      if var endpoint = result.end, endpoint.isDefinitelyBefore(result.start) {
+        try endpoint.shiftCalendarDays(1)
+        result.end = endpoint
+      }
     }
-    
-    private func mergeResult(refText text: String, dateResult: ParsedResult, timeResult: ParsedResult) throws -> ParsedResult {
-        var dateResult = dateResult
-        let beginDate = dateResult.start
-        let beginTime = timeResult.start
-        
-        var beginDateTime = beginDate
-        if let issue = beginDateTime.applyClock(from: beginTime) { dateResult.issues.append(issue) }
-        
-        if beginTime.isCertain(component: .meridiem) {
-            beginDateTime.assign(.meridiem, value: beginTime[.meridiem]!)
-        } else if let meridiem = beginTime[.meridiem], beginDateTime[.meridiem] == nil {
-            beginDateTime.imply(.meridiem, to: meridiem)
-        }
-        
-        if
-            let meridiem = beginDateTime[.meridiem], meridiem == 1,
-            let hour = beginDateTime[.hour], hour < 12
-        {
-            beginDateTime.assign(.hour, value: hour + 12)
-        }
-        
-        if dateResult.end != nil || timeResult.end != nil {
-            let endDate = dateResult.end ?? dateResult.start
-            let endTime = timeResult.end ?? timeResult.start
-            
-            var endDateTime = endDate
-            if let issue = endDateTime.applyClock(from: endTime) { dateResult.issues.append(issue) }
-            
-            if endTime.isCertain(component: .meridiem) {
-                endDateTime.assign(.meridiem, value: endTime[.meridiem]!)
-            } else if beginTime[.meridiem] != nil {
-                endDateTime.imply(.meridiem, to: endTime[.meridiem])
-            }
-            
-            if dateResult.end == nil && endDateTime.isDefinitelyBefore(beginDateTime) {
-                // Ex. 9pm - 1am
-                try endDateTime.shiftCalendarDays(1)
-            }
-            
-            dateResult.end = endDateTime
-        }
-        
-        dateResult.start = beginDateTime
-        
-        let startIndex = min(dateResult.index, timeResult.index)
-        let endIndex = max(
-            dateResult.index + dateResult.text.utf16.count,
-            timeResult.index + timeResult.text.utf16.count)
-        
-        dateResult.index = startIndex
-        dateResult.text = try text.substring(from: startIndex, to: endIndex)
-        
-        for tag in timeResult.tags.keys {
-            dateResult.tags[tag] = true
-        }
-        dateResult.tags[TAGS] = true
-        dateResult.languages.formUnion(timeResult.languages)
-        dateResult.languages.insert(language)
-        dateResult.issues += timeResult.issues
-        return dateResult
-    }
+    return result
+  }
 }
-
-
-
-
-
-

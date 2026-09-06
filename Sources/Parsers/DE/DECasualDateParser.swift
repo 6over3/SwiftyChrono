@@ -27,7 +27,7 @@ public class DECasualDateParser: Parser {
         } else if try NSRegularExpression.isMatch(forPattern: "^gestern", in: lowerText) {
             startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "letzte\\s*Nacht", in: lowerText) {
-            result.start.imply(.hour, to: 0)
+            result.start.dayPeriod = DayPeriod(.night1, language: language)
             startMoment = try startMoment.added(-1, .day)
         }
         

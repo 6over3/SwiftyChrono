@@ -1,44 +1,32 @@
-//
-//  ENCasualDateParser.swift
-//  SwiftyChrono
-//
-//  Created by Jerry Chen on 1/19/17.
-//  Copyright © 2017 Potix. All rights reserved.
-//
-
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-private let PATTERN = "(\\W|^)(today|tonight|last\\s*night|(?:tomorrow|tmr|yesterday)\\s*|tomorrow|tmr|yesterday)(?=\\W|$)"
+public final class ENCasualDateParser: Parser {
+  override var pattern: String {
+    #"(?<![\p{L}\p{N}_])(?:today|tonight|last\s+night|tomorrow|tmr|yesterday)(?=$|[^\p{L}\p{N}_])"#
+  }
 
-public class ENCasualDateParser: Parser {
-    override var pattern: String { return PATTERN }
-    
-    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
-        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
-        var result = ParsedResult(ref: ref, index: index, text: matchText)
-        
-        let refMoment = ref
-        var startMoment = refMoment
-        let lowerText = matchText.lowercased()
-        
-        if lowerText == "tonight" {
-            // Normally means this coming midnight
-            result.start.imply(.hour, to: 22)
-            result.start.imply(.meridiem, to: 1)
-            
-        } else if try NSRegularExpression.isMatch(forPattern: "^tomorrow|^tmr", in: lowerText) {
-            startMoment = try startMoment.added(1, .day)
-        } else if try NSRegularExpression.isMatch(forPattern: "^yesterday", in: lowerText) {
-            startMoment = try startMoment.added(-1, .day)
-        } else if try NSRegularExpression.isMatch(forPattern: "last\\s*night", in: lowerText) {
-            result.start.imply(.hour, to: 0)
-            startMoment = try startMoment.added(-1, .day)
-        }
-        
-        result.start.assign(.day, value: startMoment.day)
-        result.start.assign(.month, value: startMoment.month)
-        result.start.assign(.year, value: startMoment.year)
-        result.tags[.enCasualDateParser] = true
-        return result
+  override public func extract(
+    text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]
+  ) throws -> ParsedResult? {
+    let value = try match.string(from: text, atRangeIndex: 0)
+    var result = ParsedResult(ref: ref, index: match.range.location, text: value)
+    let word = value.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased()
+    let day: ChronoDate
+    switch word {
+    case "today": day = ref
+    case "tomorrow", "tmr": day = try ref.added(1, .day)
+    case "yesterday": day = try ref.added(-1, .day)
+    case "tonight":
+      day = ref
+      result.start.dayPeriod = DayPeriod(.night1, language: language)
+    case "last night":
+      day = try ref.added(-1, .day)
+      result.start.dayPeriod = DayPeriod(.night1, language: language)
+    default: throw ChronoError.invalidSourceRange
     }
+    try result.start.assign(date: day, precision: .day)
+    result.tags[.enCasualDateParser] = true
+    return result
+  }
 }

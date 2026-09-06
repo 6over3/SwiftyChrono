@@ -35,24 +35,23 @@ public class FRWeekdayParser: Parser {
         
         let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
         let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
-        var modifier = ""
+        var modifier: WeekdayReference = .nearest
         if prefix != nil || postfix != nil {
             let norm = (prefix ?? postfix ?? "").lowercased()
             
             if norm == "dernier" {
-                modifier = "last"
+                modifier = .previousWeek
             }
             else if norm == "prochain" {
-                modifier = "next"
+                modifier = .nextWeek
             }
             else if norm == "ce" {
-                modifier =  "this"
+                modifier = .currentWeek
             }
         }
         
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: modifier)
         result.tags[.frWeekdayParser] = true
         return result
     }
 }
-

@@ -21,48 +21,6 @@ private let prefixGroup = 2
 private let weekdayGroup = 3
 private let postfixGroup = 4
 
-public func updateParsedComponent(result: ParsedResult, ref: ChronoDate, offset: Int, modifier: String) throws -> ParsedResult {
-    var result = result
-    
-    var startMoment = ref
-    var startMomentFixed = false
-    let refOffset = startMoment.weekday
-    
-    var weekday: Int
-    
-    if modifier == "last" || modifier == "past" {
-        weekday = offset - 7
-        startMomentFixed = true
-    } else if modifier == "next" {
-        weekday = offset + 7
-        startMomentFixed = true
-    } else if modifier == "this" {
-        weekday = offset
-    } else {
-        if abs(offset - 7 - refOffset) < abs(offset - refOffset) {
-            weekday = offset - 7
-        } else if abs(offset + 7 - refOffset) < abs(offset - refOffset) {
-            weekday = offset + 7
-        } else {
-            weekday = offset
-        }
-    }
-    
-    startMoment = try startMoment.setOrAdded(weekday, .weekday)
-    
-    result.start.assign(.weekday, value: offset)
-    if startMomentFixed {
-        result.start.assign(.day, value: startMoment.day)
-        result.start.assign(.month, value: startMoment.month)
-        result.start.assign(.year, value: startMoment.year)
-    } else {
-        result.start.imply(.day, to: startMoment.day)
-        result.start.imply(.month, to: startMoment.month)
-        result.start.imply(.year, to: startMoment.year)
-    }
-    
-    return result
-}
 
 public class ENWeekdayParser: Parser {
     override var pattern: String { return PATTERN }
@@ -78,9 +36,16 @@ public class ENWeekdayParser: Parser {
         
         let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
         let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
-        let norm = (prefix ?? postfix ?? "").lowercased()
+        let modifier: WeekdayReference
+        switch (prefix ?? postfix)?.lowercased() {
+        case nil: modifier = .nearest
+        case "last", "past": modifier = .previousWeek
+        case "next": modifier = .nextWeek
+        case "this": modifier = .currentWeek
+        default: throw ChronoError.invalidSourceRange
+        }
         
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: norm)
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: modifier)
         result.tags[.enWeekdayParser] = true
         return result
     }

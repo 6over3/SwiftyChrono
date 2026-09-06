@@ -26,18 +26,20 @@ public class DEMorgenTimeParser: Parser {
         let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
         var result = ParsedResult(ref: ref, index: index, text: matchText)
         
-        result.start.imply(.hour, to: opt[.morning] ?? 6)
+        result.start.dayPeriod = DayPeriod(.morning1, language: language)
         
         let time = try match.string(from: text, atRangeIndex: timeMatch).lowercased()
         
         if time.hasPrefix("letzten") {
-            try result.start.shiftCalendarDays(-1)
+            try result.start.assign(date: ref.added(-1, .day), precision: .day)
         } else if time.hasSuffix("früh") {
-            try result.start.shiftCalendarDays(1)
+            try result.start.assign(date: ref.added(1, .day), precision: .day)
+        } else if time.hasPrefix("heute") {
+            try result.start.assign(date: ref, precision: .day)
         } else {
             if let weekday = try DE_WEEKDAY_OFFSET[time.substring(from: 0, to: time.utf16.count - "Morgen".utf16.count).trimmed()] {
                 
-                result.start.assign(.weekday, value: weekday)
+                try result.start.assignWeekday(weekday, relativeTo: ref, reference: .nearest)
             }
         }
         

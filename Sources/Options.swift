@@ -57,7 +57,7 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         DETimeExpressionParser(strictMode: strictMode),
         
         // ZH-Hant
-        ZHHantCasualDateParser(strictMode: strictMode),
+        ChineseCasualDateParser(script: .traditional, strictMode: strictMode),
         ZHHantDateParser(strictMode: strictMode),
         ZHHantRelationWeekdayParser(strictMode: strictMode),
         ZHHantWeekdayParser(strictMode: strictMode),
@@ -66,7 +66,7 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         ZHHantAgoFormatParser(strictMode: strictMode),
 
         // ZH-Hans
-        ZHHansCasualDateParser(strictMode: strictMode),
+        ChineseCasualDateParser(script: .simplified, strictMode: strictMode),
         ZHHansDateParser(strictMode: strictMode),
         ZHHansRelationWeekdayParser(strictMode: strictMode),
         ZHHansWeekdayParser(strictMode: strictMode),
@@ -108,6 +108,7 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
 
         // Extract additional info later
         ExtractTimeZoneRefiner(),
+        ResolveDayPeriodRefiner(),
         
         UnlikelyFormatFilter(),
     ])

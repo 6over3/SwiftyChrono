@@ -1,39 +1,33 @@
-//
-//  ENCasualTimeParser.swift
-//  SwiftyChrono
-//
-//  Created by Jerry Chen on 1/18/17.
-//  Copyright © 2017 Potix. All rights reserved.
-//
-
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-private let PATTERN = "(\\W|^)((this)?\\s*(morning|afternoon|evening|noon))"
-private let timeMatch = 4
+public final class ENCasualTimeParser: Parser {
+  override var pattern: String {
+    #"(?<![\p{L}\p{N}_])(?<value>(?:(?<today>this)\s+)?(?<period>morning|afternoon|evening|noon|midnight))(?=$|[^\p{L}\p{N}_])"#
+  }
 
-public class ENCasualTimeParser: Parser {
-    override var pattern: String { return PATTERN }
-    
-    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
-        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
-        var result = ParsedResult(ref: ref, index: index, text: matchText)
-        
-        if match.isNotEmpty(atRangeIndex: timeMatch) {
-            let time = try match.string(from: text, atRangeIndex: timeMatch)
-            switch time {
-            case "afternoon":
-                result.start.imply(.hour, to: opt[.afternoon] ?? 15)
-            case "evening":
-                result.start.imply(.hour, to: opt[.evening] ?? 18)
-            case "morning":
-                result.start.imply(.hour, to: opt[.morning] ?? 6)
-            case "noon":
-                result.start.imply(.hour, to: opt[.noon] ?? 12)
-            default: break
-            }
-        }
-        
-        result.tags[.enCasualTimeParser] = true
-        return result
+  override public func extract(
+    text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]
+  ) throws -> ParsedResult? {
+    let range = match.range(withName: "value")
+    guard let source = Range(range, in: text),
+      let token = Range(match.range(withName: "period"), in: text)
+    else { throw ChronoError.invalidSourceRange }
+    var result = ParsedResult(ref: ref, index: range.location, text: String(text[source]))
+    let phase: DayPeriod.Phase
+    switch text[token].lowercased() {
+    case "morning": phase = .morning1
+    case "afternoon": phase = .afternoon1
+    case "evening": phase = .evening1
+    case "noon": phase = .noon
+    case "midnight": phase = .midnight
+    default: throw ChronoError.invalidSourceRange
     }
+    if match.range(withName: "today").location != NSNotFound {
+      try result.start.assign(date: ref, precision: .day)
+    }
+    result.start.dayPeriod = DayPeriod(phase, language: language)
+    result.tags[.enCasualTimeParser] = true
+    return result
+  }
 }

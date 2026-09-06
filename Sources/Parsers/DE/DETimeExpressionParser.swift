@@ -77,9 +77,11 @@ public class DETimeExpressionParser: Parser {
         // ----- Hours
         let hourText = match.isNotEmpty(atRangeIndex: hourGroup) ? try match.string(from: text, atRangeIndex: hourGroup).lowercased() : ""
         if hourText == "mittag" {
+            result.start.dayPeriod = DayPeriod(.afternoon1, language: language)
             meridiem = 1
             hour = 12
         } else if hourText == "mitternacht" {
+            result.start.dayPeriod = DayPeriod(.midnight, language: language)
             meridiem = 0
             hour = 0
         } else {
@@ -124,8 +126,13 @@ public class DETimeExpressionParser: Parser {
             }
         }
         
-        result.start.assign(.hour, value: hour)
-        result.start.assign(.minute, value: minute)
+        if result.start.dayPeriod == nil {
+            result.start.assign(.hour, value: hour)
+            result.start.assign(.minute, value: minute)
+        } else {
+            result.start.imply(.hour, to: hour)
+            result.start.imply(.minute, to: minute)
+        }
         if meridiem >= 0 {
             result.start.assign(.meridiem, value: meridiem)
         } else {

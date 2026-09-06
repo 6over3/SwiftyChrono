@@ -36,25 +36,24 @@ public class DEWeekdayParser: Parser {
         
         let prefix: String? = match.isNotEmpty(atRangeIndex: prefixGroup) ? try match.string(from: text, atRangeIndex: prefixGroup) : nil
         let postfix: String? = match.isNotEmpty(atRangeIndex: postfixGroup) ? try match.string(from: text, atRangeIndex: postfixGroup) : nil
-        var modifier = ""
+        var modifier: WeekdayReference = .nearest
         if prefix != nil || postfix != nil {
             let norm = (prefix ?? postfix ?? "").lowercased()
             
             // fix it later
             if norm.hasPrefix("letzte") {
-                modifier = "last"
+                modifier = .previousWeek
             }
             else if norm.hasPrefix("nächste") || norm.hasPrefix("kommende") {
-                modifier = "next"
+                modifier = .nextWeek
             }
             else if norm.hasPrefix("diese") {
-                modifier = "this"
+                modifier = .currentWeek
             }
         }
         
-        result = try updateParsedComponent(result: result, ref: ref, offset: offset, modifier: modifier)
+        try result.start.assignWeekday(offset, relativeTo: ref, reference: modifier)
         result.tags[.deWeekdayParser] = true
         return result
     }
 }
-

@@ -58,7 +58,9 @@ struct DateRangePrecisionTests {
     #expect(end[.minute] == 30)
   }
 
-  private func one(_ text: String, language: Language) throws -> ParsedResult {
+  private func one(_ text: String, language: Language, issues: [ParsedDateIssue] = []) throws
+    -> ParsedResult
+  {
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
     let reference = try #require(calendar.date(from: DateComponents(year: 2026, month: 9, day: 6)))
@@ -67,13 +69,13 @@ struct DateRangePrecisionTests {
     try #require(results.count == 1)
     let result = try #require(results.first)
     #expect(result.text == text)
-    #expect(result.issues.isEmpty)
+    #expect(result.issues == issues)
     return result
   }
 
   @Test("A qualifier without date precision cannot acquire a year from another endpoint")
   func unresolvedQualifierDoesNotBecomeAYear() throws {
-    let result = try one("morning to now", language: .english)
+    let result = try one("morning to now", language: .english, issues: [.unresolvedDayPeriod])
     #expect(result.start.knownValues.isEmpty)
     let end = try #require(result.end)
     #expect(end.isCertain(component: .second))

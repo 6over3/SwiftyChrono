@@ -33,18 +33,15 @@ public class FRCasualDateParser: Parser {
         }
         
         if try NSRegularExpression.isMatch(forPattern: "cette\\s*nuit", in: lowerText) {
-            // Normally means this coming midnight
-            result.start.imply(.hour, to: 22)
-            result.start.imply(.meridiem, to: 1)
+            result.start.dayPeriod = DayPeriod(.night1, language: language)
         } else if try NSRegularExpression.isMatch(forPattern: "la\\s*veille", in: lowerText) {
-            result.start.imply(.hour, to: 0)
             startMoment = try startMoment.added(-1, .day)
         } else if try NSRegularExpression.isMatch(forPattern: "(après-midi|aprem)", in: lowerText) {
-            result.start.imply(.hour, to: 14)
+            result.start.dayPeriod = DayPeriod(.afternoon1, language: language)
         } else if try NSRegularExpression.isMatch(forPattern: "(soir)", in: lowerText) {
-            result.start.imply(.hour, to: 18)
+            result.start.dayPeriod = DayPeriod(.evening1, language: language)
         } else if try NSRegularExpression.isMatch(forPattern: "matin", in: lowerText) {
-            result.start.imply(.hour, to: 8)
+            result.start.dayPeriod = DayPeriod(.morning1, language: language)
         }
         
         result.start.assign(.day, value: startMoment.day)

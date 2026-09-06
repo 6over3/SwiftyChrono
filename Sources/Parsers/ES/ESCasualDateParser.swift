@@ -1,104 +1,46 @@
-//
-//  ESCasualDateParser.swift
-//  SwiftyChrono
-//
-//  Created by Jerry Chen on 2/6/17.
-//  Copyright © 2017 Potix. All rights reserved.
-//
-
+// Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-/*
- Valid patterns:
- - esta mañana -> today in the morning
- - esta tarde -> today in the afternoon/evening
- - esta noche -> tonight
- - ayer por la mañana -> yesterday in the morning
- - ayer por la tarde -> yesterday in the afternoon/evening
- - ayer por la noche -> yesterday at night
- - mañana por la mañana -> tomorrow in the morning
- - mañana por la tarde -> tomorrow in the afternoon/evening
- - mañana por la noche -> tomorrow at night
- - anoche -> tomorrow at night
- - hoy -> today
- - ayer -> yesterday
- - mañana -> tomorrow
- */
-private let PATTERN = "(\\W|^)(esta\\s*(mañana|tarde|noche)|(ayer|mañana)\\s*por\\s*la\\s*(mañana|tarde|noche)|hoy|mañana|ayer|anoche)(?=\\W|$)"
+public final class ESCasualDateParser: Parser {
+  override var language: Language { .spanish }
+  override var pattern: String {
+    #"(?<![\p{L}\p{N}_])(?:(?<today>esta)\s+(?<thisPeriod>mañana|tarde|noche)|(?<day>ayer|mañana|hoy)(?:\s+por\s+la\s+(?<period>mañana|tarde|noche))?|(?<lastNight>anoche))(?=$|[^\p{L}\p{N}_])"#
+  }
 
-public class ESCasualDateParser: Parser {
-    override var pattern: String { return PATTERN }
-    override var language: Language { return .spanish }
-    
-    override public func extract(text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]) throws -> ParsedResult? {
-        let (matchText, index) = try matchTextAndIndex(from: text, andMatchResult: match)
-        var result = ParsedResult(ref: ref, index: index, text: matchText)
-        
-        let refMoment = ref
-        var startMoment = refMoment
-        let regex = try! NSRegularExpression(pattern: "\\s+")
-        let lowerText = regex.stringByReplacingMatches(in: matchText.lowercased(), range: NSRange(location: 0, length: matchText.utf16.count), withTemplate: " ")
-        
-        if lowerText == "mañana" {
-            startMoment = try startMoment.added(1, .day)
-            
-        } else if lowerText == "ayer" {
-            
-            startMoment = try startMoment.added(-1, .day)
-            
-        } else if lowerText == "anoche" {
-            result.start.imply(.hour, to: 0)
-            startMoment = try startMoment.added(-1, .day)
-
-        } else if try NSRegularExpression.isMatch(forPattern: "esta", in: lowerText) {
-            
-            let secondMatch = try match.string(from: text, atRangeIndex: 3).lowercased()
-            if secondMatch == "tarde" {
-                result.start.imply(.hour, to: 18)
-                
-            } else if secondMatch == "mañana" {
-                result.start.imply(.hour, to: 6)
-                
-            } else if (secondMatch == "noche") {
-                
-                // Normally means this coming midnight
-                result.start.imply(.hour, to: 22)
-                result.start.imply(.meridiem, to: 1)
-                
-            }
-        
-        } else if try NSRegularExpression.isMatch(forPattern: "por\\s*la", in: lowerText) {
-            let firstMatch = try match.string(from: text, atRangeIndex: 4).lowercased()
-            if firstMatch == "ayer" {
-                startMoment = try startMoment.added(-1, .day)
-                
-            } else if firstMatch == "mañana" {
-                startMoment = try startMoment.added(1, .day)
-                
-            }
-            
-            
-            let secondMatch = try match.string(from: text, atRangeIndex: 5).lowercased()
-            if secondMatch == "tarde" {
-                result.start.imply(.hour, to: 18)
-                
-            } else if secondMatch == "mañana" {
-                result.start.imply(.hour, to: 9)
-                
-            } else if secondMatch == "noche" {
-                
-                // Normally means this coming midnight
-                result.start.imply(.hour, to: 22)
-                result.start.imply(.meridiem, to: 1)
-                
-            }
-            
-        }
-        
-        result.start.assign(.day, value: startMoment.day)
-        result.start.assign(.month, value: startMoment.month)
-        result.start.assign(.year, value: startMoment.year)
-        result.tags[.esCasualDateParser] = true
-        return result
+  override public func extract(
+    text: String, ref: ChronoDate, match: NSTextCheckingResult, opt: [OptionType: Int]
+  ) throws -> ParsedResult? {
+    let value = try match.string(from: text, atRangeIndex: 0)
+    var result = ParsedResult(ref: ref, index: match.range.location, text: value)
+    let day: ChronoDate
+    if let range = Range(match.range(withName: "day"), in: text) {
+      switch text[range].lowercased() {
+      case "ayer": day = try ref.added(-1, .day)
+      case "mañana": day = try ref.added(1, .day)
+      case "hoy": day = ref
+      default: throw ChronoError.invalidSourceRange
+      }
+    } else if match.range(withName: "lastNight").location != NSNotFound {
+      day = try ref.added(-1, .day)
+      result.start.dayPeriod = DayPeriod(.night1, language: language)
+    } else if match.range(withName: "today").location != NSNotFound {
+      day = ref
+    } else {
+      throw ChronoError.invalidSourceRange
     }
+    for name in ["period", "thisPeriod"] {
+      guard let range = Range(match.range(withName: name), in: text) else { continue }
+      let phase: DayPeriod.Phase
+      switch text[range].lowercased() {
+      case "mañana": phase = .morning2
+      case "tarde": phase = .evening1
+      case "noche": phase = .night1
+      default: throw ChronoError.invalidSourceRange
+      }
+      result.start.dayPeriod = DayPeriod(phase, language: language)
+    }
+    try result.start.assign(date: day, precision: .day)
+    result.tags[.esCasualDateParser] = true
+    return result
+  }
 }
