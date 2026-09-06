@@ -24,4 +24,6 @@ public enum ParsedDateIssue: Error, Hashable, Sendable {
   case unsupportedPrecision
   /// A day part lacks a definite date or an unambiguous bounded interpretation.
   case unresolvedDayPeriod
+  /// The operands do not establish one supported date interval together.
+  case unresolvedComposition
 }

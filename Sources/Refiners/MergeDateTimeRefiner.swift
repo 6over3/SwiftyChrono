@@ -1,9 +1,40 @@
 // Derived from SwiftyChrono. Copyright © 2017 Potix. MIT license.
 import Foundation
 
-class MergeDateTimeRefiner: Refiner {
-  var PATTERN: String { "" }
-  var TAGS: TagUnit { .none }
+final class MergeDateTimeRefiner: Refiner {
+  private let grammar: Language
+  private let joiningPattern: String
+  private let unresolvedPattern: String
+  private let tag: TagUnit
+  override var language: Language { grammar }
+
+  private init(_ language: Language, joining: String, unresolved: String, tag: TagUnit) {
+    grammar = language
+    joiningPattern = "^\\s*(?:\(joining))?\\s*$"
+    unresolvedPattern = "^\\s*(?:\(unresolved))\\s*$"
+    self.tag = tag
+  }
+
+  static var english: MergeDateTimeRefiner {
+    .init(
+      .english, joining: "T|at|on|of|,|-", unresolved: "after|before",
+      tag: .enMergeDateAndTimeRefiner)
+  }
+
+  static var french: MergeDateTimeRefiner {
+    .init(
+      .french, joining: "T|à|a|de|,|-", unresolved: "avant|après|vers",
+      tag: .frMergeDateAndTimeRefiner)
+  }
+
+  static var german: MergeDateTimeRefiner {
+    .init(.german, joining: "T|um|,|-", unresolved: "vor|nach", tag: .deMergeDateAndTimeRefiner)
+  }
+
+  static var russian: MergeDateTimeRefiner {
+    .init(
+      .russian, joining: "T|в|,|-", unresolved: "после|до|по|с", tag: .ruMergeDateAndTimeRefiner)
+  }
 
   override func refine(
     text: String, results: [ParsedResult], opt: [OptionType: Int]
@@ -29,12 +60,14 @@ class MergeDateTimeRefiner: Refiner {
       let end = previous.index + previous.text.utf16.count
       guard end <= result.index else { throw ChronoError.invalidSourceRange }
       let gap = try text.substring(from: end, to: result.index)
-      guard try NSRegularExpression.isMatch(forPattern: PATTERN, in: gap) else {
+      let isUnresolved = try NSRegularExpression.isMatch(forPattern: unresolvedPattern, in: gap)
+      guard try isUnresolved || NSRegularExpression.isMatch(forPattern: joiningPattern, in: gap)
+      else {
         merged.append(result)
         continue
       }
       merged.removeLast()
-      merged.append(try merge(date: date, clock: clock, in: text))
+      merged.append(try merge(date: date, clock: clock, in: text, unresolved: isUnresolved))
     }
     return merged
   }
@@ -48,7 +81,8 @@ class MergeDateTimeRefiner: Refiner {
       && (result.start.isCertain(component: .hour) || result.start.dayPeriod != nil)
   }
 
-  private func merge(date: ParsedResult, clock: ParsedResult, in text: String) throws
+  private func merge(date: ParsedResult, clock: ParsedResult, in text: String, unresolved: Bool)
+    throws
     -> ParsedResult
   {
     var result = date
@@ -57,10 +91,11 @@ class MergeDateTimeRefiner: Refiner {
       from: result.index,
       to: max(date.index + date.text.utf16.count, clock.index + clock.text.utf16.count))
     result.tags.merge(clock.tags) { first, _ in first }
-    result.tags[TAGS] = true
+    result.tags[tag] = true
     result.languages.formUnion(clock.languages)
     result.languages.insert(language)
     result.issues += clock.issues
+    if unresolved { result.issues.append(.unresolvedComposition) }
     guard result.issues.isEmpty else { return result }
     // Repeating a time of day within several days is not one continuous interval.
     guard date.end == nil else {

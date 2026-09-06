@@ -93,17 +93,16 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         // Removing overlaping first
         OverlapRemovalRefiner(),
         ForwardDateRefiner(),
-        
+    ] + DateContextRefiner.all + [
         // ETC
-        ENMergeDateTimeRefiner(),
+        MergeDateTimeRefiner.english,
         ENMergeDateRangeRefiner(),
-        ENPrioritizeSpecificDateRefiner(),
         FRMergeDateRangeRefiner(),
-        FRMergeDateTimeRefiner(),
+        MergeDateTimeRefiner.french,
         JPMergeDateRangeRefiner(),
-        DEMergeDateTimeRefiner(),
+        MergeDateTimeRefiner.german,
         DEMergeDateRangeRefiner(),
-        RUMergeDateTimeRefiner(),
+        MergeDateTimeRefiner.russian,
         RUMergeDateRangeRefiner(),
 
         // Extract additional info later

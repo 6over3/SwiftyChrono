@@ -62,7 +62,7 @@ public struct Chrono {
     _ result: ParsedResult, language: Language, opt: [OptionType: Int]
   ) throws -> [ParsedResult] {
     guard result.issues.isEmpty, let zone = result.sharedTimeZone,
-      result.start.calendar.timeZone != zone
+      result.ref.calendar.timeZone != zone || result.start.calendar.timeZone != zone
         || (result.end != nil && result.end?.calendar.timeZone != zone)
     else { return [result] }
     var calendar = result.ref.calendar

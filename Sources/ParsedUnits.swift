@@ -86,7 +86,7 @@ public enum TagUnit { case
     
     enMergeDateAndTimeRefiner,
     enMergeDateRangeRefiner,
-    enPrioritizeSpecificDateRefiner,
+    dateContextRefiner,
     
     frMergeDateRangeRefiner,
     frMergeDateAndTimeRefiner,
