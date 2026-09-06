@@ -99,11 +99,13 @@ private func baseOption(strictMode: Bool) -> ModeOptio {
         MergeDateTimeRefiner.french,
         MergeDateTimeRefiner.german,
         MergeDateTimeRefiner.russian,
+        MergeDateTimeRefiner.spanish,
+        MergeDateTimeRefiner.catalan,
     ] + MergeDateRangeRefiner.all + [
         // Extract additional info later
         ExtractTimeZoneRefiner(),
         ResolveDayPeriodRefiner(),
-        
+    ] + Language.allCases.filter { $0 != .neutral }.map(TemporalComparisonRefiner.init) + [
         UnlikelyFormatFilter(),
     ])
 }

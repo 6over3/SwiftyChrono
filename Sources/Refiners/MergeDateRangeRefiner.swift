@@ -66,6 +66,9 @@ final class MergeDateRangeRefiner: Refiner {
     result.languages.insert(language)
     result.issues += last.issues
     result.ambiguities.formUnion(last.ambiguities)
+    if first.comparison != nil || last.comparison != nil {
+      result.issues.append(.unresolvedComposition)
+    }
     guard result.issues.isEmpty else { return result }
     // Let Chrono re-evaluate shared relative context in a written zone before
     // assigning endpoint dates. Two independently written zones stay independent.

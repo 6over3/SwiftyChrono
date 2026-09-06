@@ -82,6 +82,14 @@ natural-language date coverage.
 - Check `result.issues` before resolving endpoints. Recognized invalid input and
   unsupported precision stay attached to the complete source expression, not a
   fabricated usable date. ISO fractional seconds support up to three digits.
+- `result.comparison` retains a written before/after/since/through relation.
+  Compare calendar periods at their boundaries and clock points at their resolved
+  instants; a precision bucket is not a clock comparison's anchor. A written day
+  followed by a clock comparison also supplies `comparisonScope`: intersect with
+  that civil day, including its zone. Repeated wall times remain alternatives.
+  Approximate, competing, and unresolved-inclusivity operators retain whole-source
+  issues. `TemporalComparisonGrammar` also binds these operators to external
+  date operands, such as a caller's season, without a second language table.
 - Invalid civil components and nonexistent wall times are not silently rolled
   into a different date. Calendar-day shifts carry month/year rollover.
 - Invalid input stays a typed outcome; invalid supplied context and source-coordinate

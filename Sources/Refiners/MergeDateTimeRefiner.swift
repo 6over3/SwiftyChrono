@@ -4,36 +4,44 @@ import Foundation
 final class MergeDateTimeRefiner: Refiner {
   private let grammar: Language
   private let joiningPattern: String
-  private let unresolvedPattern: String
+  private let unresolvedPattern: String?
   private let tag: TagUnit
   override var language: Language { grammar }
 
-  private init(_ language: Language, joining: String, unresolved: String, tag: TagUnit) {
+  private init(_ language: Language, joining: String, unresolved: String? = nil, tag: TagUnit) {
     grammar = language
     joiningPattern = "^\\s*(?:\(joining))?\\s*$"
-    unresolvedPattern = "^\\s*(?:\(unresolved))\\s*$"
+    unresolvedPattern = unresolved.map { "^\\s*(?:\($0))\\s*$" }
     self.tag = tag
   }
 
   static var english: MergeDateTimeRefiner {
     .init(
-      .english, joining: "T|at|on|of|,|-", unresolved: "after|before",
+      .english, joining: "T|at|on|of|,|-",
       tag: .enMergeDateAndTimeRefiner)
   }
 
   static var french: MergeDateTimeRefiner {
     .init(
-      .french, joining: "T|à|a|de|,|-", unresolved: "avant|après|vers",
+      .french, joining: "T|à|a|de|,|-", unresolved: "vers",
       tag: .frMergeDateAndTimeRefiner)
   }
 
   static var german: MergeDateTimeRefiner {
-    .init(.german, joining: "T|um|,|-", unresolved: "vor|nach", tag: .deMergeDateAndTimeRefiner)
+    .init(.german, joining: "T|um|,|-", tag: .deMergeDateAndTimeRefiner)
   }
 
   static var russian: MergeDateTimeRefiner {
     .init(
-      .russian, joining: "T|в|,|-", unresolved: "после|до|по|с", tag: .ruMergeDateAndTimeRefiner)
+      .russian, joining: "T|в|,|-", unresolved: "по|с", tag: .ruMergeDateAndTimeRefiner)
+  }
+
+  static var spanish: MergeDateTimeRefiner {
+    .init(.spanish, joining: "T|a las?|al?|,|-", tag: .esMergeDateAndTimeRefiner)
+  }
+
+  static var catalan: MergeDateTimeRefiner {
+    .init(.catalan, joining: "T|a les?|al?|,|-", tag: .caMergeDateAndTimeRefiner)
   }
 
   override func refine(
@@ -60,14 +68,25 @@ final class MergeDateTimeRefiner: Refiner {
       let end = previous.index + previous.text.utf16.count
       guard end <= result.index else { throw ChronoError.invalidSourceRange }
       let gap = try text.substring(from: end, to: result.index)
-      let isUnresolved = try NSRegularExpression.isMatch(forPattern: unresolvedPattern, in: gap)
-      guard try isUnresolved || NSRegularExpression.isMatch(forPattern: joiningPattern, in: gap)
+      let comparison = try TemporalComparisonGrammar.connector(in: gap, language: language)
+      let isUnresolved: Bool
+      if let unresolvedPattern {
+        isUnresolved = try NSRegularExpression.isMatch(forPattern: unresolvedPattern, in: gap)
+      } else {
+        isUnresolved = false
+      }
+      guard
+        try comparison != nil || isUnresolved
+          || NSRegularExpression.isMatch(forPattern: joiningPattern, in: gap)
       else {
         merged.append(result)
         continue
       }
       merged.removeLast()
-      merged.append(try merge(date: date, clock: clock, in: text, unresolved: isUnresolved))
+      merged.append(
+        try merge(
+          date: date, clock: clock, in: text, comparison: comparison,
+          unresolved: comparison == nil && isUnresolved))
     }
     return merged
   }
@@ -81,7 +100,10 @@ final class MergeDateTimeRefiner: Refiner {
       && (result.start.isCertain(component: .hour) || result.start.dayPeriod != nil)
   }
 
-  private func merge(date: ParsedResult, clock: ParsedResult, in text: String, unresolved: Bool)
+  private func merge(
+    date: ParsedResult, clock: ParsedResult, in text: String,
+    comparison: TemporalComparison?, unresolved: Bool
+  )
     throws
     -> ParsedResult
   {
@@ -102,6 +124,19 @@ final class MergeDateTimeRefiner: Refiner {
     guard date.end == nil else {
       result.issues.append(.unresolvedDayPeriod)
       return result
+    }
+    if let comparison {
+      guard comparison != .unresolved, date.index < clock.index, clock.end == nil,
+        clock.start.isCertain(component: .hour),
+        date.start.isCertain(component: .day) || date.start.isCertain(component: .weekday)
+      else {
+        result.issues.append(.unresolvedComposition)
+        return result
+      }
+      result.comparison = comparison
+      var scope = date.start
+      if let zone = clock.start.timeZone { scope.assign(timeZone: zone) }
+      result.comparisonScope = scope
     }
     if let issue = result.start.applyClock(from: clock.start) {
       result.issues.append(issue)

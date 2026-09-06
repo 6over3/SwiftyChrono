@@ -54,15 +54,9 @@ struct DateContextTests {
     #expect(!result.issues.isEmpty)
   }
 
-  @Test(arguments: [
-    ("Monday before 3pm", Language.english), ("Monday after 3pm", .english),
-    ("Montag vor 15:00", .german), ("Montag nach 15:00", .german),
-    ("понедельник после 15:00", .russian), ("понедельник до 15:00", .russian),
-    ("lundi avant 15:00", .french), ("lundi après 15:00", .french),
-    ("lundi vers 15:00", .french),
-  ])
-  func comparisonsCannotBecomeAnExactClock(text: String, language: Language) throws {
-    let result = try one(text, language: language)
+  @Test("An approximate clock cannot become an exact clock")
+  func approximateClock() throws {
+    let result = try one("lundi vers 15:00", language: .french)
     #expect(!result.issues.isEmpty)
   }
 

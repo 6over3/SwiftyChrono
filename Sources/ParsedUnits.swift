@@ -85,6 +85,8 @@ public enum TagUnit { case
     forwardDateRefiner,
     
     enMergeDateAndTimeRefiner,
+    esMergeDateAndTimeRefiner,
+    caMergeDateAndTimeRefiner,
     dateRangeRefiner,
     dateContextRefiner,
     

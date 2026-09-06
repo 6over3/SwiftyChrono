@@ -9,7 +9,7 @@
 import Foundation
 
 private let FIRST_REG_PATTERN = "(^|\\s|T)" +
-    "(?:(?:a les?|al?|des de|des de les|des de la|de les|de|d')\\s*)?" +
+    "(?:(?:a les?|al?)\\s*)?" +
     "(\\d{1,4}|migdia|mitjanit)" +
     "(?:" +
         "(?:\\.|\\:|\\：)(\\d{1,2})" +

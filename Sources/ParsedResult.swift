@@ -18,6 +18,10 @@ public struct ParsedResult {
   public var issues: [ParsedDateIssue] = []
   /// Callers must not automatically filter by one interpretation of this wording.
   public var ambiguities: Set<ParsedDateAmbiguity> = []
+  /// Absent for an ordinary date period; present only for written comparison wording.
+  public var comparison: TemporalComparison?
+  /// A clock comparison within a written day must not escape that day's bounds.
+  public var comparisonScope: ParsedComponents?
   public var start: ParsedComponents
   public var end: ParsedComponents?
   let isMoveIndexMode: Bool
