@@ -2,9 +2,10 @@
 import Foundation
 
 public struct ParsedComponents {
-  public var knownValues: [ComponentUnit: Int] = [:]
-  public var impliedValues: [ComponentUnit: Int] = [:]
+  public private(set) var knownValues: [ComponentUnit: Int] = [:]
+  public private(set) var impliedValues: [ComponentUnit: Int] = [:]
   public let calendar: Calendar
+  private var computedDate: ChronoDate?
 
   init(components: [ComponentUnit: Int]?, ref: ChronoDate, implyReferenceDate: Bool = true) {
     calendar = ref.calendar
@@ -29,17 +30,46 @@ public struct ParsedComponents {
 
   public mutating func assign(_ component: ComponentUnit, value: Int?) {
     guard let value else { return }
+    computedDate = nil
     knownValues[component] = value
     impliedValues.removeValue(forKey: component)
   }
 
   public mutating func imply(_ component: ComponentUnit, to value: Int?) {
     guard let value, knownValues[component] == nil else { return }
+    computedDate = nil
     impliedValues[component] = value
   }
 
   public func isCertain(component: ComponentUnit) -> Bool {
     knownValues[component] != nil
+  }
+
+  /// Calendar arithmetic already identifies an instant, including which occurrence
+  /// of a repeated hour it belongs to. Field certainty still describes its bucket.
+  mutating func assign(date: ChronoDate, precision: RelativeDateUnit) throws {
+    guard precision != .week, precision != .month, precision != .year
+    else { throw ChronoError.invalidDate }
+    assign(.year, value: date.year)
+    assign(.month, value: date.month)
+    assign(.day, value: date.day)
+    switch precision {
+    case .second:
+      assign(.second, value: date.second)
+      fallthrough
+    case .minute:
+      assign(.minute, value: date.minute)
+      fallthrough
+    case .hour:
+      assign(.hour, value: date.hour)
+    case .day: break
+    case .week, .month, .year: throw ChronoError.invalidDate
+    }
+    imply(.hour, to: date.hour)
+    imply(.minute, to: date.minute)
+    imply(.second, to: date.second)
+    imply(.millisecond, to: date.nanosecond / 1_000_000)
+    computedDate = date
   }
 
   /// Calendar-day arithmetic must carry month/year rollover without turning
@@ -48,10 +78,11 @@ public struct ParsedComponents {
     guard let civil = ParsedCivilTime(self)?.civilDate(),
       let shifted = civil.calendar.date(byAdding: .day, value: days, to: civil.date)
     else { throw ChronoError.invalidDate }
-    for (unit, component) in [(ComponentUnit.year, Calendar.Component.year), (.month, .month), (.day, .day)] {
+    for (unit, component) in [
+      (ComponentUnit.year, Calendar.Component.year), (.month, .month), (.day, .day),
+    ] {
       let value = civil.calendar.component(component, from: shifted)
-      if isCertain(component: unit) { assign(unit, value: value) }
-      else { imply(unit, to: value) }
+      if isCertain(component: unit) { assign(unit, value: value) } else { imply(unit, to: value) }
     }
   }
 
@@ -74,14 +105,18 @@ public struct ParsedComponents {
   public var dateResolution: ParsedDateResolution {
     guard let civil = ParsedCivilTime(self) else { return .invalid(.invalidComponents) }
     let resolved: Calendar
-    do { resolved = try resolvedCalendar }
-    catch { return .invalid(.invalidTimeZone) }
+    do { resolved = try resolvedCalendar } catch { return .invalid(.invalidTimeZone) }
+    if let computedDate, computedDate.calendar == resolved {
+      return .unique(computedDate)
+    }
     return civil.resolve(in: resolved)
   }
 
   /// An invalid endpoint cannot justify reordering or advancing a range.
   func isDefinitelyBefore(_ other: ParsedComponents) -> Bool {
-    guard let left = dateResolution.bounds, let right = other.dateResolution.bounds else { return false }
+    guard let left = dateResolution.bounds, let right = other.dateResolution.bounds else {
+      return false
+    }
     return left.latest < right.earliest
   }
 

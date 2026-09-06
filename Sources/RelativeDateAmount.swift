@@ -29,11 +29,11 @@ enum RelativeDateAmount {
       singles = Set(DE_INTEGER1_WORDS.keys)
       halves = "(?:\(DE_INTEGER1_WORDS_PATTERN)\\s*)?halbe(?:n|s)?"
     case .spanish:
-      words = [:]
+      words = ES_INTEGER_WORDS
       singles = ["un", "una"]
       halves = "medi[oa]"
     case .catalan:
-      words = [:]
+      words = CA_INTEGER_WORDS
       singles = ["un", "una"]
       halves = "mig|mitja"
     case .russian:
@@ -48,7 +48,20 @@ enum RelativeDateAmount {
       let map = language == .chinese ? ZH_HANT_NUMBER : ZH_HANS_NUMBER
       self = .whole(try Self.chineseNumber(value, map: map))
       return
-    case .neutral, .japanese:
+    case .japanese:
+      if value == "半" {
+        self = .half
+      } else {
+        self = .whole(
+          try Self.chineseNumber(
+            value,
+            map: [
+              "一": 1, "二": 2, "三": 3, "四": 4, "五": 5,
+              "六": 6, "七": 7, "八": 8, "九": 9, "十": 10,
+            ]))
+      }
+      return
+    case .neutral:
       throw ChronoError.invalidDate
     }
     if let number = words[value] {

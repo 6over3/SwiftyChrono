@@ -24,6 +24,10 @@ let package = Package(
             dependencies: [],
             path: "Sources"),
         .testTarget(
+            name: "TemporalContractTests",
+            dependencies: ["SwiftyChrono"],
+            path: "Tests/TemporalContractTests"),
+        .testTarget(
             name: "SwiftyChronoTests",
             dependencies: ["SwiftyChrono"],
             path: "Tests/SwiftyChronoTests",

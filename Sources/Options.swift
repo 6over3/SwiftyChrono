@@ -128,7 +128,6 @@ public func casualModeOption() -> ModeOptio {
         ENCasualTimeParser(strictMode: false),
         ENCasualDateParser(strictMode: false),
         ENWeekdayParser(strictMode: false),
-        ENRelativeDateFormatParser(strictMode: false),
         
         // JP
         JPCasualDateParser(strictMode: false),
@@ -158,6 +157,7 @@ public func casualModeOption() -> ModeOptio {
 
     ], at: 0)
     
+    options.parsers.insert(contentsOf: RelativePeriodRule.all.map(RelativePeriodParser.init), at: 0)
     return options
 }
 

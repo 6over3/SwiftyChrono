@@ -28,7 +28,12 @@ public class DEDeadlineFormatParser: Parser {
       text: match.string(from: text, atRangeIndex: 3), language: language)
     let unit = try RelativeDateUnit(
       text: match.string(from: text, atRangeIndex: 4), language: language)
-    try result.applyOffset(amount: amount, unit: unit, direction: .future)
+    let relation = try match.string(from: text, atRangeIndex: 2).lowercased()
+    if relation == "innerhalb" {
+      try result.applyRollingRange(amount: amount, unit: unit, direction: .future)
+    } else {
+      try result.applyOffset(amount: amount, unit: unit, direction: .future)
+    }
     return result
   }
 }

@@ -66,6 +66,24 @@ extension ChronoDate {
 }
 
 extension ParsedResult {
+  /// Quantified periods and deadlines include the intervening time, not just
+  /// the destination bucket. The captured reference is rounded to one second.
+  mutating func applyRollingRange(
+    amount: RelativeDateAmount, unit: RelativeDateUnit, direction: RelativeDateDirection
+  ) throws {
+    if case .half = amount, unit == .second {
+      issues.append(.unsupportedPrecision)
+      return
+    }
+    let reference = ChronoDate(
+      instant: Date(timeIntervalSince1970: floor(ref.timeIntervalSince1970)), calendar: ref.calendar
+    )
+    let shifted = try reference.offset(amount: amount, unit: unit, direction: direction).date
+    let start = direction == .past ? shifted.instant : reference.instant
+    let end = direction == .past ? reference.instant : shifted.instant
+    try assignRange(DateInterval(start: start, end: end), precision: .second)
+  }
+
   /// Parsed ranges have inclusive endpoint buckets. Use the last second inside
   /// a half-open calendar interval so callers do not include the following period.
   mutating func assignRange(_ interval: DateInterval, precision: RelativeDateUnit) throws {
@@ -90,25 +108,5 @@ extension ParsedResult {
     }
     let resolved = try ref.offset(amount: amount, unit: unit, direction: direction)
     try start.assign(date: resolved.date, precision: resolved.precision)
-  }
-}
-
-extension ParsedComponents {
-  mutating func assign(date: ChronoDate, precision: RelativeDateUnit) throws {
-    assign(.year, value: date.year)
-    assign(.month, value: date.month)
-    assign(.day, value: date.day)
-    switch precision {
-    case .second:
-      assign(.second, value: date.second)
-      fallthrough
-    case .minute:
-      assign(.minute, value: date.minute)
-      fallthrough
-    case .hour:
-      assign(.hour, value: date.hour)
-    case .day: break
-    case .week, .month, .year: throw ChronoError.invalidDate
-    }
   }
 }

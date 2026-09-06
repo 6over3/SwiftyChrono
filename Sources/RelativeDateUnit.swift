@@ -24,11 +24,13 @@ enum RelativeDateUnit {
       ]
     case .spanish:
       stems = [
+        ("segund", .second),
         ("minut", .minute), ("hora", .hour), ("día", .day), ("dia", .day),
         ("semana", .week), ("mes", .month), ("año", .year),
       ]
     case .catalan:
       stems = [
+        ("segon", .second),
         ("minut", .minute), ("hor", .hour), ("di", .day), ("setman", .week),
         ("mes", .month), ("any", .year),
       ]
@@ -41,9 +43,15 @@ enum RelativeDateUnit {
       stems = [
         ("秒", .second), ("分", .minute), ("小", .hour), ("鐘", .hour), ("钟", .hour),
         ("日", .day), ("天", .day), ("星", .week), ("禮", .week), ("礼", .week),
-        ("月", .month), ("年", .year),
+        ("周", .week), ("週", .week), ("月", .month), ("年", .year),
       ]
-    case .neutral, .japanese: throw ChronoError.invalidDate
+    case .japanese:
+      stems = [
+        ("秒", .second), ("分", .minute), ("時", .hour), ("日", .day),
+        ("週", .week), ("月", .month), ("か月", .month), ("ヶ月", .month),
+        ("ケ月", .month), ("箇月", .month), ("年", .year),
+      ]
+    case .neutral: throw ChronoError.invalidDate
     }
     let value = text.lowercased()
     guard let unit = stems.first(where: { value.hasPrefix($0.0) })?.1

@@ -37,7 +37,7 @@ private func isAbleToMerge(text: String, previousResult: ParsedResult, currentRe
     let textBetween = try text.substring(from: startIndex, to: endIndex)
     
     // Only accepts merge if one of them comes from casual relative date
-    let includesRelativeResult = previousResult.tags[.enRelativeDateFormatParser] ?? false || currentResult.tags[.enRelativeDateFormatParser] ?? false
+    let includesRelativeResult = previousResult.tags[.relativePeriodParser] ?? false || currentResult.tags[.relativePeriodParser] ?? false
     
     // We assume they refer to the same date if all date fields are implied
     var referToSameDate = !previousResult.start.isCertain(component: .day) && !previousResult.start.isCertain(component: .month) && !previousResult.start.isCertain(component: .year)
@@ -123,7 +123,6 @@ class ENPrioritizeSpecificDateRefiner: Refiner {
         return mergedResults
     }
 }
-
 
 
 

@@ -12,7 +12,7 @@ public enum TagUnit { case
     enMonthNameLittleEndianParser,
     enMonthNameMiddleEndianParser,
     enMonthNameParser,
-    enRelativeDateFormatParser,
+    relativePeriodParser,
     enSlashDateFormatParser,
     enSlashDateFormatStartWithYearParser,
     enSlashMonthFormatParser,
