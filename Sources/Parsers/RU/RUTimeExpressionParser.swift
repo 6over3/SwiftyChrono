@@ -139,7 +139,7 @@ public class RUTimeExpressionParser: Parser {
         guard let match = regex?.firstMatch(in: secondText, range: NSRange(location: 0, length: secondText.utf16.count)) else {
             // Not accept number only result
             if try NSRegularExpression.isMatch(forPattern: "^\\d+$", in: result.text) {
-                return nil
+                return try TemporalComparisonGrammar.unresolvedClock(result, in: text, language: language)
             }
             
             return result

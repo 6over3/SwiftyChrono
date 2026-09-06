@@ -56,6 +56,21 @@ public enum TemporalComparisonGrammar {
     return binding.comparison
   }
 
+  /// A bare number is not a clock. Retain its uncertainty when a comparison
+  /// connects it to another date, so that date cannot escape as a smaller filter.
+  static func unresolvedClock(_ original: ParsedResult, in text: String, language: Language)
+    throws -> ParsedResult?
+  {
+    guard
+      try binding(
+        to: NSRange(location: original.index, length: original.text.utf16.count),
+        in: text, language: language) != nil
+    else { return nil }
+    var result = original
+    result.issues.append(.unresolvedComposition)
+    return result
+  }
+
   private struct Match {
     let comparison: TemporalComparison
     let range: Range<String.Index>

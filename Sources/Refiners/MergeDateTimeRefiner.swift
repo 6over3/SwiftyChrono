@@ -6,6 +6,7 @@ final class MergeDateTimeRefiner: Refiner {
   private let joiningPattern: String
   private let unresolvedPattern: String?
   private let tag: TagUnit
+  private let operandFilter = UnlikelyFormatFilter()
   override var language: Language { grammar }
 
   private init(_ language: Language, joining: String, unresolved: String? = nil, tag: TagUnit) {
@@ -83,10 +84,13 @@ final class MergeDateTimeRefiner: Refiner {
         continue
       }
       merged.removeLast()
+      let uncertainClock =
+        try comparison != nil
+        && !operandFilter.isValid(text: text, result: clock, opt: opt)
       merged.append(
         try merge(
           date: date, clock: clock, in: text, comparison: comparison,
-          unresolved: comparison == nil && isUnresolved))
+          unresolved: comparison == nil && isUnresolved || uncertainClock))
     }
     return merged
   }

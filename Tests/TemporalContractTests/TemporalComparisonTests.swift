@@ -62,6 +62,7 @@ struct TemporalComparisonTests {
     "Monday until 3pm", "last week after 3pm", "January after 3pm",
     "Monday to Friday after 3pm", "before Monday after 3pm",
     "Monday before 3pm to 5pm", "Monday before after 3pm",
+    "after 20", "before 2020", "Monday after 20", "after 20.5", "Monday after 20.5",
   ])
   func unresolvedCannotLeakFragments(text: String) throws {
     let result = try one(text, language: .english)

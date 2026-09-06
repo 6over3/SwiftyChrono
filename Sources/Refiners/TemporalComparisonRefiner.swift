@@ -2,6 +2,7 @@ import Foundation
 
 final class TemporalComparisonRefiner: Refiner {
   private let grammar: Language
+  private let operandFilter = UnlikelyFormatFilter()
   override var language: Language { grammar }
 
   init(language: Language) { grammar = language }
@@ -19,7 +20,9 @@ final class TemporalComparisonRefiner: Refiner {
       result.index = binding.range.location
       result.text = try text.substring(from: result.index, to: NSMaxRange(binding.range))
       result.languages.insert(language)
-      if result.comparison != nil || binding.comparison == .unresolved {
+      if try result.comparison != nil || binding.comparison == .unresolved
+        || !operandFilter.isValid(text: text, result: original, opt: opt)
+      {
         result.issues.append(.unresolvedComposition)
       } else {
         result.comparison = binding.comparison
