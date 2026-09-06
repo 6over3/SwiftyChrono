@@ -32,7 +32,7 @@ private let SECOND_REG_PATTERN = "^\\s*" +
         "(?:\\s*Uhr)?" +
     ")?" +
     "(?:\\s*(?:(A\\.M\\.|P\\.M\\.|AM?|PM?)|uhr))?" +
-    "(?=\\W|$)"
+    "(?![-/]\\d)(?=\\W|$)"
 
 private let hourGroup = 2
 private let minuteGroup = 3

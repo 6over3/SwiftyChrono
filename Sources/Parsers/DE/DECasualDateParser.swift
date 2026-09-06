@@ -8,7 +8,7 @@
 
 import Foundation
 
-private let PATTERN = "(\\W|^)(jetzt|heute|letzte\\s*Nacht|(?:morgen|gestern)\\s*|morgen|gestern)(?=\\W|$)"
+private let PATTERN = "(\\W|^)(heute|letzte\\s*Nacht|(?:morgen|gestern)\\s*|morgen|gestern)(?=\\W|$)"
 
 public class DECasualDateParser: Parser {
     override var pattern: String { return PATTERN }
@@ -29,11 +29,6 @@ public class DECasualDateParser: Parser {
         } else if try NSRegularExpression.isMatch(forPattern: "letzte\\s*Nacht", in: lowerText) {
             result.start.imply(.hour, to: 0)
             startMoment = try startMoment.added(-1, .day)
-        } else if try NSRegularExpression.isMatch(forPattern: "jetzt", in: lowerText) {
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
         }
         
         result.start.assign(.day, value: startMoment.day)

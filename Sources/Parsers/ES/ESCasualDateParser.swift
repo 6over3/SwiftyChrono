@@ -24,7 +24,7 @@ import Foundation
  - ayer -> yesterday
  - mañana -> tomorrow
  */
-private let PATTERN = "(\\W|^)(ahora|esta\\s*(mañana|tarde|noche)|(ayer|mañana)\\s*por\\s*la\\s*(mañana|tarde|noche)|hoy|mañana|ayer|anoche)(?=\\W|$)"
+private let PATTERN = "(\\W|^)(esta\\s*(mañana|tarde|noche)|(ayer|mañana)\\s*por\\s*la\\s*(mañana|tarde|noche)|hoy|mañana|ayer|anoche)(?=\\W|$)"
 
 public class ESCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
@@ -92,13 +92,6 @@ public class ESCasualDateParser: Parser {
                 result.start.imply(.meridiem, to: 1)
                 
             }
-            
-        } else if try NSRegularExpression.isMatch(forPattern: "ahora", in: lowerText) {
-            
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
             
         }
         

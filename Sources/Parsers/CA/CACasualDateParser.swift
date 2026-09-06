@@ -24,7 +24,7 @@ import Foundation
  - ahir -> yesterday
  - demà -> tomorrow
  */
-private let PATTERN = "(\\W|^)(ara|aquesta?\\s*(matí|tarda|nit)|(ahir|demà)\\s*(per\\s*la|pel)\\s*(matí|tarda|nit)|avui|demà|ahir\\s+(a|per)\\s+la\\s+nit|ahir)(?=\\W|$)"
+private let PATTERN = "(\\W|^)(aquesta?\\s*(matí|tarda|nit)|(ahir|demà)\\s*(per\\s*la|pel)\\s*(matí|tarda|nit)|avui|demà|ahir\\s+(a|per)\\s+la\\s+nit|ahir)(?=\\W|$)"
 
 public class CACasualDateParser: Parser {
     override var pattern: String { return PATTERN }
@@ -92,13 +92,6 @@ public class CACasualDateParser: Parser {
                 result.start.imply(.meridiem, to: 1)
                 
             }
-            
-        } else if try NSRegularExpression.isMatch(forPattern: "ara", in: lowerText) {
-            
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
             
         }
         

@@ -155,6 +155,7 @@ public func casualModeOption() -> ModeOptio {
     ], at: 0)
     
     options.parsers.insert(contentsOf: RelativePeriodRule.all.map(RelativePeriodParser.init), at: 0)
+    options.parsers.insert(contentsOf: CurrentInstantParser.all, at: 0)
     return options
 }
 

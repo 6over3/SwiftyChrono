@@ -10,19 +10,17 @@
 import Foundation
 
 private let PATTERN =
-    "(而家|立(?:刻|即)|即刻)|" +
     "(今|明|前|大前|後|大後|聽|昨|尋|琴)(早|朝|晚)|" +
     "(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨))|" +
     "(今|明|前|大前|後|大後|聽|昨|尋|琴)(?:日|天)" +
     "(?:[\\s|,|，]*)" +
     "(?:(上(?:午|晝)|朝(?:早)|早(?:上)|下(?:午|晝)|晏(?:晝)|晚(?:上)|夜(?:晚)?|中(?:午)|凌(?:晨)))?"
 
-private let nowGroup = 1
-private let dayGroup1 = 2
-private let timeGroup1 = 3
-private let timeGroup2 = 4
-private let dayGroup3 = 5
-private let timeGroup3 = 6
+private let dayGroup1 = 1
+private let timeGroup1 = 2
+private let timeGroup2 = 3
+private let dayGroup3 = 4
+private let timeGroup3 = 5
 
 public class ZHHantCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
@@ -35,12 +33,7 @@ public class ZHHantCasualDateParser: Parser {
         let refMoment = ref
         var startMoment = refMoment
 
-        if match.isNotEmpty(atRangeIndex: nowGroup) {
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
-        } else if match.isNotEmpty(atRangeIndex: dayGroup1) {
+        if match.isNotEmpty(atRangeIndex: dayGroup1) {
             let day1 = try match.string(from: text, atRangeIndex: dayGroup1)
             let time1 = try match.string(from: text, atRangeIndex: timeGroup1)
 

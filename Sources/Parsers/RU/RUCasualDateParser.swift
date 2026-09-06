@@ -7,7 +7,7 @@
 
 import Foundation
 
-private let PATTERN = "(\\W|^)(сейчас|сегодня|вчера|ночью|прошлым\\s*вечером|сегодня ночью|прошлой\\s*ночью|(?:завтра|вчера)\\s*|послезавтра|позавчера)(?=\\W|$)"
+private let PATTERN = "(\\W|^)(сегодня|вчера|ночью|прошлым\\s*вечером|сегодня ночью|прошлой\\s*ночью|(?:завтра|вчера)\\s*|послезавтра|позавчера)(?=\\W|$)"
 
 public class RUCasualDateParser: Parser {
     override var pattern: String { PATTERN }
@@ -40,11 +40,6 @@ public class RUCasualDateParser: Parser {
         } else if try NSRegularExpression.isMatch(forPattern: "прошлым\\s*вечером", in: lowerText) {
             result.start.imply(.hour, to: 15)
             startMoment = try startMoment.added(-1, .day)
-        } else if try NSRegularExpression.isMatch(forPattern: "сейчас", in: lowerText) {
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
         }
         
         result.start.assign(.day, value: startMoment.day)

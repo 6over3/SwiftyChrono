@@ -8,7 +8,7 @@
 
 import Foundation
 
-private let PATTERN = "(\\W|^)(now|today|tonight|last\\s*night|(?:tomorrow|tmr|yesterday)\\s*|tomorrow|tmr|yesterday)(?=\\W|$)"
+private let PATTERN = "(\\W|^)(today|tonight|last\\s*night|(?:tomorrow|tmr|yesterday)\\s*|tomorrow|tmr|yesterday)(?=\\W|$)"
 
 public class ENCasualDateParser: Parser {
     override var pattern: String { return PATTERN }
@@ -33,11 +33,6 @@ public class ENCasualDateParser: Parser {
         } else if try NSRegularExpression.isMatch(forPattern: "last\\s*night", in: lowerText) {
             result.start.imply(.hour, to: 0)
             startMoment = try startMoment.added(-1, .day)
-        } else if try NSRegularExpression.isMatch(forPattern: "now", in: lowerText) {
-            result.start.imply(.hour, to: refMoment.hour)
-            result.start.imply(.minute, to: refMoment.minute)
-            result.start.imply(.second, to: refMoment.second)
-            result.start.imply(.millisecond, to: refMoment.millisecond)
         }
         
         result.start.assign(.day, value: startMoment.day)
